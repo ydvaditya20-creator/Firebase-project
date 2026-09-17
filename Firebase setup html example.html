@@ -1,0 +1,523 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Firebase Production Speed Tester</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background: #f4f7f6;
+            color: #333;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-width: 500px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background: #218838;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .result {
+            font-weight: bold;
+            margin-top: 15px;
+            font-size: 18px;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .status {
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 15px;
+        }
+
+        pre {
+            background: #eee;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>⚡ Firebase Realtime Database - Production Mode Test</h2>
+
+    <div id="authStatus" class="status">
+        Connecting and Authenticating securely...
+    </div>
+
+
+    <!-- WRITE TEST -->
+    <div class="card">
+
+        <h3>1. Secure Append / Write</h3>
+
+        <p>
+            Click to securely append a transaction record.
+        </p>
+
+        <button id="writeBtn" disabled>
+            Append 1 Record
+        </button>
+
+        <div id="writeResult" class="result"></div>
+
+    </div>
+
+
+    <!-- READ TEST -->
+    <div class="card">
+
+        <h3>2. Secure Read</h3>
+
+        <p>
+            Click to fetch the last added record.
+        </p>
+
+        <button id="readBtn" disabled>
+            Read Last Record
+        </button>
+
+        <div id="readResult" class="result"></div>
+
+        <pre id="dataDisplay">
+Data will appear here...
+        </pre>
+
+    </div>
+
+
+    <!-- FIREBASE -->
+    <script type="module">
+
+        /*
+         * ==========================================
+         * FIREBASE SDK IMPORTS
+         * ==========================================
+         */
+
+        import { initializeApp }
+        from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+        import {
+            getAuth,
+            signInAnonymously,
+            onAuthStateChanged
+        }
+        from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        import {
+            getDatabase,
+            ref,
+            push,
+            limitToLast,
+            query,
+            get
+        }
+        from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+
+        /*
+         * ==========================================
+         * FIREBASE CONFIG
+         * ==========================================
+         */
+
+        const firebaseConfig = {
+
+            apiKey:
+                "AIzaSyDPcVvNNJZRVGF9SESynXtsZYwdJXB7J8U",
+
+            authDomain:
+                "shemacc-3ccac.firebaseapp.com",
+
+            databaseURL:
+                "https://shemacc-3ccac-default-rtdb.asia-southeast1.firebasedatabase.app",
+
+            projectId:
+                "shemacc-3ccac",
+
+            storageBucket:
+                "shemacc-3ccac.firebasestorage.app",
+
+            messagingSenderId:
+                "307019636811",
+
+            appId:
+                "1:307019636811:web:8f6ee756dbb7e756e8edce"
+
+        };
+
+
+        /*
+         * ==========================================
+         * INITIALIZE FIREBASE
+         * ==========================================
+         */
+
+        const app = initializeApp(firebaseConfig);
+
+
+        /*
+         * ==========================================
+         * AUTH
+         * ==========================================
+         */
+
+        const auth = getAuth(app);
+
+
+        /*
+         * ==========================================
+         * REALTIME DATABASE
+         * ==========================================
+         */
+
+        const db = getDatabase(app);
+
+
+        /*
+         * ==========================================
+         * DATABASE REFERENCE
+         * ==========================================
+         */
+
+        const dbRef = ref(db, "transactions");
+
+
+        /*
+         * ==========================================
+         * HTML ELEMENTS
+         * ==========================================
+         */
+
+        const authStatus =
+            document.getElementById("authStatus");
+
+        const writeBtn =
+            document.getElementById("writeBtn");
+
+        const readBtn =
+            document.getElementById("readBtn");
+
+        const writeResult =
+            document.getElementById("writeResult");
+
+        const readResult =
+            document.getElementById("readResult");
+
+        const dataDisplay =
+            document.getElementById("dataDisplay");
+
+
+        /*
+         * ==========================================
+         * AUTH STATE
+         * ==========================================
+         */
+
+        onAuthStateChanged(auth, (user) => {
+
+            if (user) {
+
+                authStatus.innerHTML =
+                    `🔒 Securely Connected.
+                     Anonymous User ID:
+                     <small>${user.uid}</small>`;
+
+                writeBtn.disabled = false;
+                readBtn.disabled = false;
+
+                console.log(
+                    "Firebase authentication successful:",
+                    user.uid
+                );
+
+            } else {
+
+                authStatus.innerHTML =
+                    "Disconnected.";
+
+                writeBtn.disabled = true;
+                readBtn.disabled = true;
+
+            }
+
+        });
+
+
+        /*
+         * ==========================================
+         * ANONYMOUS LOGIN
+         * ==========================================
+         */
+
+        signInAnonymously(auth)
+            .then(() => {
+
+                console.log(
+                    "Anonymous authentication started successfully."
+                );
+
+            })
+            .catch((error) => {
+
+                console.error(
+                    "Authentication Error:",
+                    error
+                );
+
+                authStatus.innerHTML =
+                    `<span style="color:red;">
+                        ❌ Auth Error: ${error.message}
+                        <br>
+                        Please check that Anonymous Authentication
+                        is enabled in Firebase Console.
+                    </span>`;
+
+                writeBtn.disabled = true;
+                readBtn.disabled = true;
+
+            });
+
+
+        /*
+         * ==========================================
+         * WRITE / APPEND TEST
+         * ==========================================
+         */
+
+        writeBtn.addEventListener("click", async () => {
+
+            writeResult.innerHTML =
+                "Writing to Cloud...";
+
+            writeBtn.disabled = true;
+
+
+            /*
+             * Sample transaction
+             */
+
+            const sampleData = {
+
+                txn_id:
+                    "V-20260915-" +
+                    Math.floor(
+                        Math.random() * 100000000
+                    ),
+
+                date:
+                    "2026-09-16",
+
+                type:
+                    "Payment",
+
+                narration:
+                    "Hdh (Credit: ₹3), Bd (Credit: ₹2), Fhhf (Debit: ₹1)",
+
+                amount:
+                    "₹3.00",
+
+                description:
+                    "Being Hide Line Narration Hdh:",
+
+                createdAt:
+                    new Date().toISOString()
+
+            };
+
+
+            const startTime =
+                performance.now();
+
+
+            try {
+
+                /*
+                 * Push creates a unique Firebase key
+                 */
+
+                const newRecord =
+                    await push(
+                        dbRef,
+                        sampleData
+                    );
+
+
+                const endTime =
+                    performance.now();
+
+                const duration =
+                    (endTime - startTime).toFixed(2);
+
+
+                writeResult.innerHTML =
+                    `<span class="success">
+                        ✅ Appended securely in ${duration} ms!
+                    </span>
+                    <br>
+                    <small>
+                        Key: ${newRecord.key}
+                    </small>`;
+
+
+                console.log(
+                    "Record written:",
+                    newRecord.key
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "Write Error:",
+                    error
+                );
+
+                writeResult.innerHTML =
+                    `<span style="color:red;">
+                        ❌ Error: ${error.message}
+                    </span>`;
+
+            }
+
+
+            writeBtn.disabled = false;
+
+        });
+
+
+        /*
+         * ==========================================
+         * READ LAST RECORD
+         * ==========================================
+         */
+
+        readBtn.addEventListener("click", async () => {
+
+            readResult.innerHTML =
+                "Reading from Cloud...";
+
+            readBtn.disabled = true;
+
+            dataDisplay.innerText =
+                "Loading...";
+
+
+            /*
+             * Get only last record
+             */
+
+            const lastRecordQuery =
+                query(
+                    dbRef,
+                    limitToLast(1)
+                );
+
+
+            const startTime =
+                performance.now();
+
+
+            try {
+
+                const snapshot =
+                    await get(
+                        lastRecordQuery
+                    );
+
+
+                const endTime =
+                    performance.now();
+
+                const duration =
+                    (endTime - startTime).toFixed(2);
+
+
+                if (snapshot.exists()) {
+
+                    readResult.innerHTML =
+                        `<span class="success">
+                            ✅ Read securely in ${duration} ms!
+                        </span>`;
+
+
+                    dataDisplay.innerText =
+                        JSON.stringify(
+                            snapshot.val(),
+                            null,
+                            2
+                        );
+
+
+                } else {
+
+                    readResult.innerHTML =
+                        "No data found in 'transactions' node.";
+
+                    dataDisplay.innerText =
+                        "";
+
+                }
+
+
+            } catch (error) {
+
+                console.error(
+                    "Read Error:",
+                    error
+                );
+
+                readResult.innerHTML =
+                    `<span style="color:red;">
+                        ❌ Error: ${error.message}
+                    </span>`;
+
+                dataDisplay.innerText =
+                    "";
+
+            }
+
+
+            readBtn.disabled = false;
+
+        });
+
+    </script>
+
+</body>
+</html>
+```
