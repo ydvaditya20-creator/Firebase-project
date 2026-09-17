@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Double Entry Voucher System</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #16a085;
+            --danger: #c0392b;
+            --success: #27ae60;
+            --light: #f8f9fa;
+            --warning: #f39c12;
+            --info: #2980b9;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #eef2f3; color: #333; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2, h3 { color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+        .row { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
+        .form-group { flex: 1; min-width: 200px; display: flex; flex-direction: column; }
+        label { font-weight: 600; margin-bottom: 5px; font-size: 14px; }
+        input, select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        input[readonly] { background-color: #e9ecef; cursor: not-allowed; }
+        
+        /* Dynamic Toggle Button Style */
+        .btn-toggle { background-color: var(--warning); color: white; font-size: 16px; padding: 12px; margin-bottom: 15px; width: 100%; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-toggle.natwa { background-color: var(--info); }
+
+        /* Table Layouts */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; margin-bottom: 30px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; font-size: 14px; }
+        th { background-color: var(--primary); color: white; }
+        tr:nth-child(even) { background-color: var(--light); }
+        
+        /* Action UI Buttons */
+        .btn { padding: 10px 18px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.2s; }
+        .btn-add { background-color: var(--secondary); color: white; }
+        .btn-save { background-color: var(--success); color: white; width: 100%; margin-top: 15px; font-size: 16px; padding: 12px; }
+        .btn-edit { background-color: #f39c12; color: white; padding: 5px 10px; font-size: 12px; margin-right: 5px; }
+        .btn-delete { background-color: var(--danger); color: white; padding: 5px 10px; font-size: 12px; margin-right: 5px; }
+        .btn-print { background-color: #3498db; color: white; padding: 5px 10px; font-size: 12px; }
+        
+        .status-box { padding: 15px; border-radius: 4px; font-weight: bold; text-align: center; margin-top: 15px; font-size: 16px; }
+        .balanced { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .unbalanced { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        
+        #printArea { display: none; }
+        @media print {
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { display: block; position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Double Entry Voucher System
+<button 
+    onclick="if(confirm('Kya aap sach mein saara data permanent delete karna chahte hain?')) { localStorage.clear(); savedVouchers = []; renderHistoryTables(); alert('Saara data delete ho gaya!'); }" 
+    style="display: block; margin-left: auto; background-color: #dc3545; color: white; border: none; padding: 10px 20px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+    onmouseover="this.style.backgroundColor='#bd2130'" 
+    onmouseout="this.style.backgroundColor='#dc3545'">
+    Reset all data
+</button>
+	</h2>
+    
+    <!-- Classification Toggle Button -->
+    <button type="button" id="classificationBtn" class="btn btn-toggle" onclick="toggleClassification()">Basahi</button>
+
+    <!-- Voucher Meta Section -->
+    <div class="row">
+        <div class="form-group">
+            <label>Voucher Number (Auto)</label>
+            <input type="text" id="voucherNo" readonly>
+        </div>
+        <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="voucherDate" onchange="generateUniqueVoucherNo()">
+        </div>
+        <div class="form-group">
+            <label>Voucher Type</label>
+            <select id="voucherType">
+                <option value="Payment">Payment</option>
+                <option value="Receipt">Receipt</option>
+                <option value="Journal">Journal</option>
+                <option value="Contra">Contra</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="form-group">
+            <label>Narration (Type or Select)</label>
+            <input type="text" id="narration" list="narrationList" placeholder="Enter narration...">
+            <datalist id="narrationList">
+                <option value="Being cash paid for office expenses">
+                <option value="Being goods purchased on cash">
+                <option value="Being cash received from client">
+                <option value="Being bank interest received">
+                <option value="Being office rent paid via bank">
+            </datalist>
+        </div>
+    </div>
+
+    <h3>Voucher Entries</h3>
+    <button type="button" class="btn btn-add" onclick="addGridRow()">+ Add Line</button>
+    
+    <table id="entryTable">
+        <thead>
+            <tr>
+                <th style="width: 45%;">Account Head</th>
+                <th style="width: 20%;">Type</th>
+                <th style="width: 25%;">Amount (₹)</th>
+                <th style="width: 10%;">Action</th>
+            </tr>
+        </thead>
+        <tbody id="entrySubBody"></tbody>
+        <tfoot>
+            <tr style="font-weight: bold; background: #eef2f3;">
+                <td>Total</td>
+                <td style="text-align: right;">Debit: <span id="totalDebit">0</span></td>
+                <td colspan="2">Credit: <span id="totalCredit">0</span></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div id="balanceStatus" class="status-box unbalanced">Unbalanced (Diff: 0)</div>
+    
+    <button type="button" class="btn btn-save" onclick="saveVoucher()">Save Voucher</button>
+
+    <!-- SEPARATE TABLES FOR REPORT -->
+    <h3 style="margin-top: 40px; color: var(--warning);">Basahi Voucher Register</h3>
+  <button onclick="sendTableToSheet('basahiTable')">Export Natwa Table to Sheet</button>
+ <button onclick="openViewer('basahiTable')">📊 View Basahi Table</button>
+
+
+  <table id="basahiTable">
+        <thead>
+            <tr>
+                <th>Voucher No</th>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Accounts Involved</th>
+                <th>Total Amount</th>
+                <th>Narration</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="basahiBody"></tbody>
+    </table>
+
+    <h3 style="margin-top: 20px; color: var(--info);">Natwa Voucher Register</h3>
+   <button onclick="sendTableToSheet('natwaTable')">Export Natwa Table to Sheet</button>
+ <button onclick="openViewer('natwaTable')">📊 View Basahi Table</button>
+
+
+ <table id="natwaTable">
+        <thead>
+            <tr>
+                <th>Voucher No</th>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Accounts Involved</th>
+                <th>Total Amount</th>
+                <th>Narration</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="natwaBody"></tbody>
+    </table>
+</div>
+
+<datalist id="accountList">
+    <option value="Cash Account">
+    <option value="HDFC Bank Account">
+    <option value="Sales Revenue Account">
+    <option value="Purchase Account">
+    <option value="Office Rent Expense">
+    <option value="Salary Expense">
+</datalist>
+
+<div id="printArea"></div>
+
+<script>  
+// Purane let savedVouchers = []; ki jagah ye line likhein
+let savedVouchers = JSON.parse(localStorage.getItem('vouchers')) || [];
+
+
+
+let editModeVoucherId = null;
+let currentClassification = "Basahi"; // Default state tracking
+
+window.onload = function() {
+    document.getElementById('voucherDate').valueAsDate = new Date();
+    generateUniqueVoucherNo();
+    addGridRow();
+    addGridRow();
+
+// Ise window.onload ke andar sabse niche jod dein
+renderHistoryTables();
+
+}
+function sendTableToSheet(tableId) {
+            // YAHAN APNA APPS SCRIPT WEB APP URL PASTE KAREIN
+            const webAppUrl = "https://script.google.com/macros/s/AKfycbzMLraZcirFbs-oOhgdwnXAoM3AYYNug-_Y5EAEZ9OIlEPGqAvW8CqeCPXXuty9h58W9w/exec"; 
+            
+            const table = document.getElementById(tableId);
+            if (!table) {
+                alert("Table nahi mila!");
+                return;
+            }
+            // 1. डेटा रीड करने से पहले: सभी इनलाइन नरेशन बॉक्स को जबरदस्ती खोलें
+document.querySelectorAll("button[onclick*='Show Line Narration']").forEach(btn => {
+    const box = btn.parentElement.nextElementSibling;
+    if (box && box.style.display === 'none') {
+        btn.click(); // बटन पर ऑटो-क्लिक करके बॉक्स खोल देगा
+    }
+});
+
+
+
+     
+            const rowsData = [];
+            const rows = table.querySelectorAll("tr");
+
+            // Table ki har row se data nikalna
+            rows.forEach((row, index) => {
+    // Agar index 0 hai (yaani pehli row/header), toh use skip kar do
+    if (index === 0) return; 
+
+    const cols = row.querySelectorAll("td"); // Header rows me 'th' hota hai, yahan sirf 'td' (data) lenge
+    const rowData = [];
+    
+    cols.forEach(col => {
+        rowData.push(col.innerText.trim());
+    });
+    
+    // Agar row khali nahi hai, tabhi data array me daalein
+    if (rowData.length > 0) {
+        rowsData.push(rowData);
+    }
+});
+
+document.querySelectorAll("button[onclick*='Hide Line Narration']").forEach(btn => {
+        const box = btn.parentElement.nextElementSibling;
+        if (box && box.style.display === 'block') {
+            btn.click(); // दोबारा क्लिक करके तुरंत बंद कर देगा
+        }
+    });
+
+
+            // Google App Script ko bheja jaane wala data object
+            const payload = {
+                sheetName: tableId, // Id hi hamare sheet ka naam (tab name) hai
+                rows: rowsData
+            };
+
+            // Loader ya alert show karna
+            alert(`${tableId} table ka data Google Sheet me bheja ja raha hai...`);
+
+            // Fetch API ke zariye Google Sheet script ko POST request bhejna
+            fetch(webAppUrl, {
+                method: "POST",
+                mode: "no-cors", // Google Apps Script redirects ko handle karne ke liye no-cors zaroori hai
+                cache: "no-cache",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                alert(`Data kamyabi se '${tableId}' tab me add ho gaya hai!`);
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("Data bhejne me koi dikkat aayi.");
+            });
+
+// 1. डेटा रीड करने से पहले: सभी इनलाइन नरेशन बॉक्स को जबरदस्ती खोलें
+
+
+
+        }
+
+function openViewer(sheetName) {
+        // Yeh function viewer.html ko naye tab me kholega sahi parameter ke sath
+        window.open("Table of Daybook1.2.html?sheet=" + sheetName, "_blank");
+    }
+
+// Toggle logic between Basahi and Natwa
+function toggleClassification() {
+    const btn = document.getElementById('classificationBtn');
+    if (currentClassification === "Basahi") {
+        currentClassification = "Natwa";
+        btn.innerText = "Natwa";
+        btn.classList.add('natwa');
+    } else {
+        currentClassification = "Basahi";
+        btn.innerText = "Basahi";
+        btn.classList.remove('natwa');
+    }
+}
+
+function generateUniqueVoucherNo() {
+    if(editModeVoucherId) return; 
+    const dateInput = document.getElementById('voucherDate').value.replace(/-/g, "");
+    const now = new Date();
+    const timePart = String(now.getHours()).padStart(2, '0') + 
+                     String(now.getMinutes()).padStart(2, '0') + 
+                     String(now.getSeconds()).padStart(2, '0') + 
+                     String(now.getMilliseconds()).padStart(3, '0');
+    document.getElementById('voucherNo').value = `V-${dateInput}-${timePart}`;
+}
+
+function addGridRow(acc = '', type = 'Debit', amt = '', lineNarration = '') {
+    const tbody = document.getElementById('entrySubBody');
+    const row = document.createElement('tr');
+    row.className = 'entry-row';
+    
+    // अगर पहले से डेटा आ रहा है तो इनपुट दिखाएँ, नहीं तो बटन दिखाएँ
+    const hasNarration = lineNarration.trim() !== '';
+
+    row.innerHTML = `
+        <td>
+            <input type="text" class="grid-acc" list="accountList" value="${acc}" placeholder="Type Account" style="width:90%">
+            
+            <div class="narration-container" style="margin-top: 5px;">
+                <!-- छोटा सुंदर बटन -->
+                <button type="button" class="btn-add-narration" 
+                        onclick="this.nextElementSibling.style.display='block'; this.style.display='none';" 
+                        style="display: ${hasNarration ? 'none' : 'inline-block'}; background: none; border: none; color: #2196F3; font-size: 11px; cursor: pointer; padding: 0; font-weight: bold;">
+                        + Add Narration
+                </button>
+                
+                <!-- नरेशन इनपुट बॉक्स (बटन दबाने पर खुलेगा) -->
+                <div style="display: ${hasNarration ? 'block' : 'none'};">
+                    <input type="text" class="grid-line-narration" value="${lineNarration}" 
+                           placeholder="Enter line narration..." 
+                           style="width:90%; font-size: 12px; font-style: italic; border: 1px dashed #ccc; padding: 2px 5px;">
+                </div>
+            </div>
+        </td>
+        <td>
+            <select class="grid-type" onchange="calculateTotals()">
+                <option value="Debit" ${type === 'Debit' ? 'selected' : ''}>Debit</option>
+                <option value="Credit" ${type === 'Credit' ? 'selected' : ''}>Credit</option>
+            </select>
+        </td>
+        <td><input type="number" class="grid-amt" value="${amt}" oninput="calculateTotals()" placeholder="0.00" style="width:90%"></td>
+        <td><button type="button" class="btn btn-delete" onclick="removeGridRow(this)">X</button></td>
+    `;
+    tbody.appendChild(row);
+    calculateTotals();
+}
+
+
+function removeGridRow(btn) {
+    btn.parentNode.parentNode.remove();
+    calculateTotals();
+}
+
+function calculateTotals() {
+    let debitTotal = 0, creditTotal = 0;
+    document.querySelectorAll('.entry-row').forEach(row => {
+        const type = row.querySelector('.grid-type').value;
+        const amt = parseFloat(row.querySelector('.grid-amt').value) || 0;
+        if(type === 'Debit') debitTotal += amt; else creditTotal += amt;
+    });
+    document.getElementById('totalDebit').innerText = debitTotal.toFixed(2);
+    document.getElementById('totalCredit').innerText = creditTotal.toFixed(2);
+    const statusBox = document.getElementById('balanceStatus');
+    if(debitTotal === creditTotal && debitTotal > 0) {
+        statusBox.className = "status-box balanced";
+        statusBox.innerText = `Balanced (Total: ₹${debitTotal.toFixed(2)})`;
+        return true;
+    } else {
+        statusBox.className = "status-box unbalanced";
+        statusBox.innerText = `Unbalanced (Diff: ₹${Math.abs(debitTotal - creditTotal).toFixed(2)})`;
+        return false;
+    }
+}
+
+function saveVoucher() {
+    if(!calculateTotals()) {
+        alert("Error: Voucher unbalanced hai!");
+        return;
+    }
+
+    const vNo = document.getElementById('voucherNo').value;
+    const vDate = document.getElementById('voucherDate').value;
+    const vType = document.getElementById('voucherType').value;
+    const narration = document.getElementById('narration').value; // पुराना ग्लोबल नरेशन सुरक्षित है
+
+    let items = [];
+    let accountSummary = [];
+    document.querySelectorAll('.entry-row').forEach(row => {
+        const acc = row.querySelector('.grid-acc').value;
+        const type = row.querySelector('.grid-type').value;
+        const amt = parseFloat(row.querySelector('.grid-amt').value) || 0;
+        
+        // प्रत्येक लाइन के इनलाइन नरेशन इनपुट से वैल्यू निकालें
+        const lineNarInput = row.querySelector('.grid-line-narration');
+        const lineNarration = lineNarInput ? lineNarInput.value : '';
+
+        if(acc && amt > 0) {
+            // items ऐरे के ऑब्जेक्ट में 'lineNarration' प्रॉपर्टी को जोड़ दिया गया है
+            items.push({ 
+                account: acc, 
+                type: type, 
+                amount: amt, 
+                lineNarration: lineNarration 
+            });
+            accountSummary.push(`${acc} (${type}: ₹${amt})`);
+        }
+    });
+
+    if(items.length < 2) { return alert("Kam se kam do accounts enter karein."); }
+
+    const voucherData = {
+        id: editModeVoucherId || vNo,
+        vNo: vNo,
+        vDate: vDate,
+        vType: vType,
+        narration: narration, // यह वाउचर का मुख्य (ग्लोबल) नरेशन सेव कर रहा है
+        items: items,         // इसमें अब प्रत्येक लेज़र का अपना इनलाइन नरेशन भी सेव्ड है
+        summary: accountSummary.join(', '),
+        total: parseFloat(document.getElementById('totalDebit').innerText),
+        classification: currentClassification // Saves under Basahi or Natwa
+    };
+
+    if(editModeVoucherId) {
+        const index = savedVouchers.findIndex(v => v.id === editModeVoucherId);
+        savedVouchers[index] = voucherData;
+        editModeVoucherId = null;
+    } else {
+        savedVouchers.push(voucherData);
+    }
+
+    document.getElementById('narration').value = '';
+    document.getElementById('entrySubBody').innerHTML = '';
+    addGridRow(); addGridRow();
+    generateUniqueVoucherNo();
+    renderHistoryTables();
+    
+    // Data save karne ke liye local storage
+    localStorage.setItem('vouchers', JSON.stringify(savedVouchers));
+}
+
+// Segmentation Engine rendering split tables
+function renderHistoryTables() {
+    const basahiBody = document.getElementById('basahiBody');
+    const natwaBody = document.getElementById('natwaBody');
+    basahiBody.innerHTML = '';
+    natwaBody.innerHTML = '';
+
+    savedVouchers.forEach(v => {
+        // चेक करें कि क्या इस वाउचर के किसी भी आइटम में इनलाइन नरेशन है
+        const hasLineNarration = v.items && v.items.some(item => item.lineNarration && item.lineNarration.trim() !== '');
+        
+        // सभी इनलाइन नरेशन को इकट्ठा करके एक HTML लिस्ट स्ट्रक्चर तैयार करें
+        let lineNarrationHTML = '';
+        if (hasLineNarration) {
+            lineNarrationHTML = `<div class="inline-narrations-box" style="display:none; margin-top:8px; padding:6px; background:#f9f9f9; border-left:3px solid #2196F3; font-size:11px; text-align:left; max-width:250px;">`;
+            v.items.forEach(item => {
+                if (item.lineNarration && item.lineNarration.trim() !== '') {
+                    lineNarrationHTML += `<div style="margin-bottom:4px;"><b>${item.account}:</b> <span style="color:#555; font-style:italic;">"${item.lineNarration}"</span></div>`;
+                }
+            });
+            lineNarrationHTML += `</div>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><b>${v.vNo}</b></td>
+            <td>${v.vDate}</td>
+            <td><span style="padding:4px 8px; border-radius:4px; background:#ddd; font-weight:bold; font-size:12px;">${v.vType}</span></td>
+            <td style="color:#2c3e50; font-size:13px;">${v.summary}</td>
+            <td><b>₹${v.total.toFixed(2)}</b></td>
+            <td>
+                <!-- मुख्य ग्लोबल नरेशन -->
+                <i>${v.narration || '<span style="color:#ccc;">No global narration</span>'}</i>
+                
+                <!-- अगर इनलाइन नरेशन है, तो बटन और छिपा हुआ बॉक्स दिखाएँ -->
+                ${hasLineNarration ? `
+                    <div style="margin-top:5px;">
+                        <button type="button" onclick="const box=this.parentElement.nextElementSibling; box.style.display=box.style.display==='none'?'block':'none'; this.innerText=box.style.display==='block'?'Hide Line Narration':'Show Line Narration';" 
+                                style="background:#e3f2fd; border:1px solid #2196F3; color:#2196F3; font-size:10px; padding:2px 6px; border-radius:3px; cursor:pointer; font-weight:bold;">
+                            Show Line Narration
+                        </button>
+                    </div>
+                    ${lineNarrationHTML}
+                ` : ''}
+            </td>
+            <td>
+                <button class="btn btn-edit" onclick="editVoucher('${v.id}')">Edit</button>
+                <button class="btn btn-print" onclick="printVoucher(this)">Print</button>
+                <button class="btn btn-delete" onclick="deleteVoucher('${v.id}')">Delete</button>
+            </td>
+        `;
+        
+        if (v.classification === "Basahi") {
+            basahiBody.appendChild(tr);
+        } else {
+            natwaBody.appendChild(tr);
+        }
+    });
+}
+
+
+function deleteVoucher(id) {
+    if(confirm("Kya aap delete karna chahte hain?")) {
+        savedVouchers = savedVouchers.filter(v => v.id !== id);
+        renderHistoryTables();
+// Data delete hone ke baad storage update karne ke liye ise deleteVoucher() mein renderHistoryTables() ke niche dalein
+localStorage.setItem('vouchers', JSON.stringify(savedVouchers));
+
+
+    }
+}
+
+function editVoucher(id) {
+    const voucher = savedVouchers.find(v => v.id === id);
+    if(!voucher) return;
+
+    editModeVoucherId = voucher.id;
+    document.getElementById('voucherNo').value = voucher.vNo;
+    document.getElementById('voucherDate').value = voucher.vDate;
+    document.getElementById('voucherType').value = voucher.vType;
+    document.getElementById('narration').value = voucher.narration;
+    
+    currentClassification = voucher.classification;
+    const btn = document.getElementById('classificationBtn');
+    btn.innerText = currentClassification;
+    if(currentClassification === "Natwa") btn.classList.add('natwa'); else btn.classList.remove('natwa');
+
+    const tbody = document.getElementById('entrySubBody');
+    tbody.innerHTML = '';
+    voucher.items.forEach(item => addGridRow(item.account, item.type, item.amount,item.lineNarration || ''));
+}
+
+	
+	function printVoucher(buttonElement) {
+    // 1. बटन की रो से डेटा कलेक्ट करना
+    var row = buttonElement.closest('tr');
+    var cells = row.getElementsByTagName('td');
+    
+    var vNo = cells[0].innerText.trim();
+    var vDate = cells[1].innerText.trim();
+    var vType = cells[2].innerText.trim(); 
+    var accountsInvolvedRaw = cells[3].innerText.trim();
+    var totalAmount = cells[4].innerText.trim().replace('₹', '');
+    var narration = cells[5].innerText.trim();
+
+    // 2. वाउचर टाइप कंडीशन तय करना
+    var isJournal = vType.toLowerCase() === 'journal';
+    var voucherHeaderTitle = vType; 
+    if (vType.toLowerCase().includes('payment')) {
+        voucherHeaderTitle = vType;
+    } else if (vType.toLowerCase().includes('receipt')) {
+        voucherHeaderTitle = vType;
+    }
+
+    // 3. डेटा प्रोसेसिंग वेरिएबल्स
+    var accountsArray = accountsInvolvedRaw.split(',');
+    var tableHeaderHTML = "";
+    var tableBodyHTML = "";
+
+    if (isJournal) {
+        // जर्नल के लिए 6-कॉलम हेडर
+        tableHeaderHTML = `
+            <tr>
+                <th style="width: 8%;">Sl.No.</th>
+                <th style="width: 32%;">Head of Account (Dr)</th>
+                <th style="width: 10%;">Dr Amt</th>
+                <th style="width: 8%;">Sl.No.</th>
+                <th style="width: 32%;">Head of Account (Cr)</th>
+                <th style="width: 10%;">Cr Amt</th>
+            </tr>
+        `;
+
+        var drAccounts = [];
+        var crAccounts = [];
+
+        accountsArray.forEach(function(accountStr) {
+            accountStr = accountStr.trim();
+            var amtMatch = accountStr.match(/₹([0-9.,]+)/);
+            var amt = amtMatch ? amtMatch[1] : "";
+            var cleanName = accountStr.split('(')[0].trim();
+
+            if (accountStr.toLowerCase().includes('debit')) {
+                drAccounts.push({ name: cleanName, amount: amt });
+            } else if (accountStr.toLowerCase().includes('credit')) {
+                crAccounts.push({ name: cleanName, amount: amt });
+            }
+        });
+
+        var maxRows = Math.max(drAccounts.length, crAccounts.length);
+        for (var i = 0; i < maxRows; i++) {
+            var dr = drAccounts[i] || { name: "", amount: "" };
+            var cr = crAccounts[i] || { name: "", amount: "" };
+            var drSl = dr.name ? (i + 1) : "";
+            var crSl = cr.name ? (i + 1) : "";
+
+            // यहाँ 'class="journal-row"' लगाया है ताकि इसकी हाइट नॉर्मल रहे
+            tableBodyHTML += `
+                <tr class="journal-row">
+                    <td style="text-align: center; padding: 6px 4px;">${drSl}</td>
+                    <td style="padding: 6px 8px;">${dr.name}</td>
+                    <td style="text-align: right; padding: 6px 8px;">${dr.amount}</td>
+                    <td style="text-align: center; padding: 6px 4px;">${crSl}</td>
+                    <td style="padding: 6px 8px;">${cr.name}</td>
+                    <td style="text-align: right; padding: 6px 8px;">${cr.amount}</td>
+                </tr>
+            `;
+        }
+
+        tableBodyHTML += `
+            <tr class="total-row">
+                <td></td>
+                <td class="total-label" style="border: 1px solid #000 !important;">Total</td>
+                <td class="total-amount">${totalAmount}</td>
+                <td></td>
+                <td class="total-label" style="border: 1px solid #000 !important;">Total</td>
+                <td class="total-amount">${totalAmount}</td>
+            </tr>
+        `;
+			} else {
+        // पेमेंट और रिसीप्ट के लिए 4-कॉलम हेडर
+        tableHeaderHTML = `
+            <tr style="font-size:20px">
+                <th style="width: 8%;font-size:13px">Sl.No.</th>
+                <th style="width: 42%;font-size:13px">Particulars / Narration</th>
+                <th style="width: 30%;font-size:13px">Head of Accounts</th>
+                <th style="width: 20%;font-size:13px">Amount</th>
+            </tr>
+        `;
+
+        var finalAccountsHTML = "";
+        var serialNoHTML = "";
+        var amountHTML = "";
+        var itemCounter = 1;
+
+        accountsArray.forEach(function(accountStr) {
+            accountStr = accountStr.trim();
+            var isDebit = accountStr.toLowerCase().includes('debit');
+            var isCredit = accountStr.toLowerCase().includes('credit');
+            
+            var amtMatch = accountStr.match(/₹([0-9.,]+)/);
+            var individualAmt = amtMatch ? amtMatch[1] : "";
+            var cleanAccountName = accountStr.split('(')[0].trim();
+
+            if (vType.toLowerCase().includes('payment') && isDebit) {
+                finalAccountsHTML += `<div style="margin:10px 3px; min-height:18px;">${cleanAccountName}</div>`;
+                serialNoHTML += `<div style="margin:8px 3px; min-height:18px; text-align:center;">${itemCounter}</div>`;
+                amountHTML += `<div style="margin:8px 3px; min-height:18px; text-align:right;">${individualAmt}</div>`;
+                itemCounter++;
+            } else if (vType.toLowerCase().includes('receipt') && isCredit) {
+                finalAccountsHTML += `<div style="margin:10px 3px; min-height:18px;">${cleanAccountName}</div>`;
+                serialNoHTML += `<div style="margin:8px 3px; min-height:18px; text-align:center;">${itemCounter}</div>`;
+                amountHTML += `<div style="margin:8px 3px; min-height:18px; text-align:right;">${individualAmt}</div>`;
+                itemCounter++;
+            }
+        });
+
+        if (finalAccountsHTML === "") {
+            finalAccountsHTML = accountsInvolvedRaw;
+            serialNoHTML = "1";
+            amountHTML = totalAmount;
+        }
+
+        tableBodyHTML = `
+            <tr class="standard-row">
+                <td style="padding: 8px 3px;">${serialNoHTML}</td>
+                <td style="padding: 15px 15px 2px 5px;">${narration}</td>
+                <td>${finalAccountsHTML}</td>
+                <td style="padding: 8px 5px;">${amountHTML}</td>
+            </tr>
+            <tr class="total-row">
+                <td></td>
+                <td></td>
+                <td class="total-label">Total</td>
+                <td class="total-amount">${totalAmount}</td>
+            </tr>
+        `;
+    }
+
+    var amountInWords = totalAmount + " Rupees Only"; 
+
+    var voucherHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            * { box-sizing: border-box; font-family: Arial, sans-serif; }
+            body { margin: 0; padding: 10px; background: #fff; }
+            .voucher-container { width: 100%; max-width: 800px; margin: 0 auto; background-color: #fffde9; border: 2px solid #000; padding: 15px; }
+            .header-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+            .logo-title { color: #d96b27; font-size: 24px; font-weight: bold; margin: 0; }
+            .voucher-title-section { text-align: right; vertical-align: top; }
+            .voucher-title { font-size: 18px; font-weight: bold; text-transform: uppercase; margin: 0; }
+            .info-row { display: flex; justify-content: space-between; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 6px 10px; font-weight: bold; font-size: 13px; }
+            .main-table { width: 100%; border-collapse: collapse; margin-top: -1px; }
+            .main-table th { background-color: #cccbca; border: 1px solid #000; font-size: 11px; padding: 5px; text-transform: uppercase; }
+            .main-table td { border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000; vertical-align: top; }
+            
+            /* यहाँ हुआ बदलाव: पेमेंट/रिसीप्ट सिंगल रो को बड़ा स्पेस (160px) मिलेगा */
+            .main-table tbody tr.standard-row { height: 160px; }
+            
+            /* जर्नल की हर रो अपनी डेटा के हिसाब से छोटी और साफ-सुथरी (Auto) रहेगी */
+            .main-table tbody tr.journal-row { height: auto !important; }
+            
+            .total-row { height: auto !important; }
+            .total-row td { height: auto !important;background-color: #cccbca; padding: 6px 8px; font-weight: bold; }
+            .total-label { background-color: #cccbca; text-align: right; text-transform: uppercase; border: 1px solid #000 !important; }
+            .total-amount { text-align: right; border: 1px solid #000 !important; }
+            .words-section { border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000; padding: 8px 10px; font-size: 12px; font-weight: bold; }
+            .signature-section { display: flex; width: 100%; margin-top: -1px; }
+            .sig-box { flex: 1; border-left: 1px solid #000; border-bottom: 1px solid #000; height: 60px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+            .sig-box:last-child { border-right: 1px solid #000; }
+            @media print { .voucher-container { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+        </style>
+    </head>
+    <body>
+        <div class="voucher-container">
+            <table class="header-table">
+                <tr>
+                    <td><div class="logo-title">★ SHEMFORD<sup>™</sup></div></td>
+                    <td class="voucher-title-section"><div class="voucher-title">${voucherHeaderTitle}</div></td>
+                </tr>
+            </table>
+            <div class="info-row">
+                <div>DATE: ${"  "}${vDate}</div>
+                <div>V.No. ${vNo}</div>
+            </div>
+            <table class="main-table">
+                <thead>${tableHeaderHTML}</thead>
+                <tbody>${tableBodyHTML}</tbody>
+            </table>
+            ${isJournal ? `<div style="border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000; padding: 6px 10px; font-size: 15px;font-weight: 150px;"><b>Narration:</b> ${narration}</div>` : ''}
+            <div class="words-section">
+                AMOUNT'S (IN WORDS): <span style=" font-weight: 150px; margin-left: 10px;">${amountInWords}</span>
+            </div>
+						 ${isJournal ? `<div class="signature-section">
+                <div class="sig-box">Prepared By</div>
+                <div class="sig-box">Approved By</div>
+            </div>` : `<div class="signature-section">
+                <div class="sig-box">Prepared By</div>
+                <div class="sig-box">Payment By</div>
+								<div class="sig-box">Approved By</div>
+                <div class="sig-box">Received By</div>
+            </div>`}
+            
+        </div>
+    </body>
+    </html>
+    `;
+
+    var printWindow = window.open('', '_blank', 'height=600,width=800');
+    printWindow.document.write(voucherHtml);
+    printWindow.document.close();
+   
+}
+Const="https://script.google.com/macros/s/AKfycbzMLraZcirFbs-oOhgdwnXAoM3AYYNug-_Y5EAEZ9OIlEPGqAvW8CqeCPXXuty9h58W9w/exec"
+
+</script>
+</body>
+</html>
