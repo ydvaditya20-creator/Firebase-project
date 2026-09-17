@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fast Transaction Manager</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background: #f8f9fa; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 5px; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; }
+        .status { font-weight: bold; color: #28a745; margin-bottom: 15px; text-align: center; }
+        
+        /* Table Styling for Speed */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #dee2e6; }
+        th { background-color: #f1f3f5; font-weight: 600; }
+        tr:first-child td { font-weight: bold; color: #28a745; background: #e8f5e9; } /* Highlight latest */
+        .badge { padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .badge-payment { background: #e3f2fd; color: #0d47a1; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>⚡ Realtime Transaction Dashboard</h2>
+    <div id="authStatus" class="status">Connecting securely...</div>
+
+    <!-- 1. DATA INPUT FORM -->
+    <div class="card">
+        <h3>➕ New Transaction Entry</h3>
+        <form id="txnForm">
+            <div class="form-group">
+                <label>Narration / Details</label>
+                <input type="text" id="narration" value="Hdh (Credit: ₹3), Bd (De beenbit: ₹2)" required>
+            </div>
+            <div class="form-group">
+                <label>Amount (with currency symbol)</label>
+                <input type="text" id="amount" value="₹3.00" required>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" id="description" value="Being Hide Line Narration Hdh:">
+            </div>
+            <button type="submit" id="submitBtn" disabled>Save & Sync Record</button>
+        </form>
+        <div id="speedLog" style="margin-top:10px; font-size:13px; color:#666;"></div>
+    </div>
+
+    <!-- 2. FAST REALTIME DISPLAY -->
+    <div class="card">
+        <h3>📜 Live History (Latest 20 Records)</h3>
+        <p style="font-size: 12px; color: #777;">Background synchronization is active. New entries appear instantly at the top.</p>
+        <table id="txnTable">
+            <thead>
+                <tr>
+                    <th>Txn ID</th>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Details</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Data will append here instantly -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script type="module">
+    
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, push, limitToLast, query, onChildAdded } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDPcVvNNJZRVGF9SESynXtsZYwdJXB7J8U",
+    authDomain: "shemacc-3ccac.firebaseapp.com",
+    databaseURL: "https://shemacc-3ccac-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "shemacc-3ccac",
+    storageBucket: "shemacc-3ccac.firebasestorage.app",
+    messagingSenderId: "307019636811",
+    appId: "1:307019636811:web:8f6ee756dbb7e756e8edce"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+const dbRef = ref(db, "transactions");
+
+const submitBtn = document.getElementById("submitBtn");
+const tableBody = document.getElementById("tableBody");
+
+// Anonymous Login Trigger
+signInAnonymously(auth);
+
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        document.getElementById("authStatus").innerText = "🔒 Secure Production Mode Active";
+        if(submitBtn) submitBtn.disabled = false;
+        
+        // --- 🟢 FIX: JAISE HI USER LOGIN HOGA, DATA FETCH AUR DISPLAY SHURU HOGA ---
+        initRealtimeListener(); 
+    }
+});
+
+// --- DATA WRITE / PUSH LOGIC ---
+const txnForm = document.getElementById("txnForm");
+if (txnForm) {
+    txnForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        submitBtn.disabled = true;
+
+        const rawDate = new Date();
+        const formattedDate = rawDate.toISOString().split('T')[0]; 
+
+        const newRecord = {
+            txn_id: "V-" + rawDate.getFullYear() + String(rawDate.getMonth()+1).padStart(2,'0') + String(rawDate.getDate()).padStart(2,'0') + "-" + Math.floor(Math.random() * 100000),
+            date: formattedDate,
+            type: "Payment",
+            narration: document.getElementById("narration").value,
+            amount: document.getElementById("amount").value,
+            description: document.getElementById("description").value
+        };
+
+        try {
+            await push(dbRef, newRecord);
+            document.getElementById("speedLog").innerText = `⚡ Data sent to Cloud successfully!`;
+        } catch (err) {
+            alert("Error saving: " + err.message);
+        }
+        submitBtn.disabled = false;
+    });
+}
+
+// --- 🎯 FIX: DATA KO REALTIME LISTEN KARKE TABLE MEIN APPREND KARNE WALA FUNCTION ---
+function initRealtimeListener() {
+    // Sirf aakhiri 20 records fetch karenge (Fast load ke liye)
+    const recentQuery = query(dbRef, limitToLast(20));
+
+    // 'onChildAdded' event cloud se har purane aur naye data ko automatic read karta hai
+    onChildAdded(recentQuery, (snapshot) => {
+        const data = snapshot.val();
+        
+        if (data && tableBody) {
+            // Naya Table Row element banana
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td><small>${data.txn_id || 'N/A'}</small></td>
+                <td>${data.date || 'N/A'}</td>
+                <td><span class="badge badge-payment">${data.type || 'Payment'}</span></td>
+                <td>${data.narration || 'No Narration'}</td>
+                <td><b>${data.amount || '₹0.00'}</b></td>
+            `;
+
+            // Data ko Table Body mein sabse upar (Top) insert karna
+            tableBody.insertBefore(row, tableBody.firstChild);
+        }
+    });
+}
+
+</script>
+</body>
+</html>
