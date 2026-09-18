@@ -3,101 +3,284 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>External Image Uploader</title>
+  <title>Transaction Manager with Multi-Drive Docs</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f4f9; }
-    .container { max-width: 500px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-    input[type="file"] { margin-bottom: 15px; }
-    button { background-color: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
-    button:disabled { background-color: #cccccc; }
-    #result { margin-top: 20px; word-break: break-all; }
-    .success-link { color: #0066cc; font-weight: bold; }
-    #preview { max-width: 100%; margin-top: 15px; display: none; border-radius: 4px; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; background-color: #f7f9fc; color: #333; }
+    .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    h2, h3 { color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; }
+    .form-group { display: flex; gap: 15px; margin-bottom: 20px; background: #edf2f7; padding: 15px; border-radius: 6px; align-items: flex-end; }
+    .input-field { display: flex; flex-direction: column; flex: 1; }
+    .input-field label { margin-bottom: 5px; font-weight: bold; font-size: 14px; color: #4a5568; }
+    .input-field input { padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px; font-size: 15px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }
+    th, td { border: 1px solid #e2e8f0; padding: 12px; text-align: left; vertical-align: top; }
+    th { background-color: #edf2f7; color: #4a5568; }
+    tr:nth-child(even) { background-color: #f8fafc; }
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+    .modal-content { background-color: white; margin: 10% auto; padding: 25px; border-radius: 8px; width: 50%; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+    .close { float: right; font-size: 28px; cursor: pointer; color: #aaa; }
+    .close:hover { color: black; }
+    .btn { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; }
+    .btn-add { background-color: #2b6cb0; color: white; }
+    .btn-edit { background-color: #3182ce; color: white; margin-right: 5px; }
+    .btn-delete { background-color: #e53e3e; color: white; }
+    .btn-upload { background-color: #38a169; color: white; margin-top: 10px; width: 100%; }
+    .btn-upload:disabled { background-color: #cbd5e0; cursor: not-allowed; }
+    .doc-container { display: flex; flex-direction: column; gap: 15px; margin-top: 10px; }
+    .iframe-box { border: 1px solid #cbd5e0; border-radius: 4px; overflow: hidden; }
+    .no-doc { color: #a0aec0; font-style: italic; font-size: 13px; }
+    .status-msg { margin-top: 10px; font-weight: bold; color: #dd6b20; text-align: center; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h2>Upload Image to Google Drive (External)</h2>
+  <h2>Transaction Management System (Full CRUD)</h2>
   
-  <input type="file" id="imageInput" accept="image/*" onchange="previewImage()">
-  <br>
-  <img id="preview" alt="Preview">
-  <br>
-  <button id="uploadBtn" onclick="uploadFile()">Upload Image</button>
+  <!-- 1. DATA ENTRY FORM -->
+  <h3>1. Add New Transaction</h3>
+  <div class="form-group">
+    <div class="input-field">
+      <label for="txDescription">Description</label>
+      <input type="text" id="txDescription" placeholder="e.g., Office Internet Bill">
+    </div>
+    <div class="input-field">
+      <label for="txAmount">Amount (₹)</label>
+      <input type="number" id="txAmount" placeholder="e.g., 1500">
+    </div>
+    <button id="addBtn" class="btn btn-add">Save Transaction</button>
+  </div>
   
-  <div id="result"></div>
+  <!-- 2. LIVE DATA TABLE -->
+  <h3>2. Transactions List</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th>Amount</th>
+        <th>Manual Documents (&lt;details&gt; &amp; &lt;iframe&gt;)</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="transactionTableBody">
+      <!-- Firebase se live data yahan load hoga -->
+    </tbody>
+  </table>
 </div>
 
-<script>
-  // 🔴 APNA DEPLOYED APPS SCRIPT WEB APP URL YAHA PASTE KAREIN
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyHGJ47fxu1kRKYLPXh8SJMo3FqYUfCGk0JA6Bnx_CAuXxPuest3OYOZTJyk8xvS0DY/exec";
-
-  function previewImage() {
-    const file = document.getElementById('imageInput').files[0];
-    const preview = document.getElementById('preview');
+<!-- 3. EDIT MODE & MULTI-UPLOAD MODAL -->
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <span id="closeModalBtn" class="close">&times;</span>
+    <h3>Edit Mode: Attach Bills / Receipts</h3>
+    <hr style="border: 1px solid #ecf0f1;">
     
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        preview.src = e.target.result;
-        preview.style.display = 'block';
-      }
-      reader.readAsDataURL(file);
-    }
-  }
-
-  function uploadFile() {
-    const fileInput = document.getElementById('imageInput');
-    const uploadBtn = document.getElementById('uploadBtn');
-    const resultDiv = document.getElementById('result');
+    <div style="margin: 15px 0;">
+      <p><b>Transaction ID:</b> <span id="modalTxId" style="color: #4a5568;"></span></p>
+      <div class="input-field" style="margin-bottom: 10px;">
+        <label for="modalEditDesc">Update Description</label>
+        <input type="text" id="modalEditDesc">
+      </div>
+      <div class="input-field">
+        <label for="modalEditAmount">Update Amount (₹)</label>
+        <input type="number" id="modalEditAmount">
+      </div>
+    </div>
     
-    if (fileInput.files.length === 0) {
-      alert('Kripya pehle ek image select karein!');
+    <label for="modalFileInput"><b>Upload Multiple Bills (Images/PDFs) to Drive:</b></label><br><br>
+    <input type="file" id="modalFileInput" accept="image/*,application/pdf" multiple>
+    
+    <button id="uploadBtn" class="btn btn-upload">Update Text & Upload New Images</button>
+    <div id="modalStatus" class="status-msg"></div>
+  </div>
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, push, update, remove, query, onValue,limitToLast, onChildAdded, onChildChanged, onChildRemoved,get} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+
+  
+  const firebaseConfig = {
+    apiKey: "AIzaSyDPcVvNNJZRVGF9SESynXtsZYwdJXB7J8U",
+    authDomain: "shemacc-3ccac.firebaseapp.com",
+    databaseURL: "https://shemacc-3ccac-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "shemacc-3ccac",
+    storageBucket: "shemacc-3ccac.firebasestorage.app",
+    messagingSenderId: "307019636811",
+    appId: "1:307019636811:web:8f6ee756dbb7e756e8edce"
+};
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const APPS_SCRIPT_URL ="https://script.google.com/macros/s/AKfycbyHGJ47fxu1kRKYLPXh8SJMo3FqYUfCGk0JA6Bnx_CAuXxPuest3OYOZTJyk8xvS0DY/exec";
+
+  let currentEditingId = null;
+
+  // 🟢 CREATE: Save New Text Data to Firebase
+  document.getElementById('addBtn').addEventListener('click', () => {
+    const desc = document.getElementById('txDescription').value.trim();
+    const amount = document.getElementById('txAmount').value.trim();
+    if (!desc || !amount) { alert("Please fill all fields!"); return; }
+
+    push(ref(db, 'transactions'), {
+      description: desc,
+      amount: parseFloat(amount),
+      billLinks: []
+    })
+    .then(() => {
+      document.getElementById('txDescription').value = "";
+      document.getElementById('txAmount').value = "";
+    });
+  });
+
+  // 🔵 READ: Real-time Live Sync Table Loader with <details> and <iframe>
+  onValue(ref(db, 'transactions'), (snapshot) => {
+    const tableBody = document.getElementById('transactionTableBody');
+    tableBody.innerHTML = ""; 
+    const data = snapshot.val();
+    if (!data) {
+      tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No records found.</td></tr>";
       return;
     }
+
+    for (let id in data) {
+      const tx = data[id];
+      let docHtml = `<span class="no-doc">No bills attached</span>`;
+      
+      if (tx.billLinks && tx.billLinks.length > 0) {
+        docHtml = `<details><summary>📄 View Receipts (${tx.billLinks.length})</summary><div class="doc-container">`;
+        tx.billLinks.forEach((link, index) => {
+          const embedLink = link.replace('/view?usp=drivesdk', '/preview').replace('/view', '/preview');
+          docHtml += `
+            <div class="iframe-box">
+              <span style="font-size:11px; padding:4px 8px; display:block; background:#edf2f7; font-weight:bold;">Document ${index + 1}</span>
+              <iframe src="${embedLink}" width="100%" height="180" style="border:none;"></iframe>
+            </div>`;
+        });
+        docHtml += `</div></details>`;
+      }
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><b>${tx.description || 'N/A'}</b></td>
+        <td>₹${tx.amount || '0'}</td>
+        <td>${docHtml}</td>
+        <td>
+          <button class="btn btn-edit" data-id="${id}">Edit / Upload</button>
+          <button class="btn btn-delete" data-id="${id}">Delete</button>
+        </td>`;
+      tableBody.appendChild(tr);
+    }
+  });
+
+  // 🔴 DELETE & EDIT ROUTER
+  document.getElementById('transactionTableBody').addEventListener('click', (e) => {
+    const id = e.target.getAttribute('data-id');
+    if (!id) return;
+    if (e.target.classList.contains('btn-edit')) {
+      openEditModal(id);
+    } else if (e.target.classList.contains('btn-delete')) {
+      if (confirm("Delete this record?")) {
+        remove(ref(db, `transactions/${id}`));
+      }
+    }
+  });
+
+  async function openEditModal(id) {
+    currentEditingId = id;
+    document.getElementById('modalTxId').innerText = id;
+    document.getElementById('modalStatus').innerText = "";
+    document.getElementById('modalFileInput').value = ""; 
+    try {
+      const snapshot = await get(ref(db, `transactions/${id}`));
+      if(snapshot.exists()) {
+        document.getElementById('modalEditDesc').value = snapshot.val().description || "";
+        document.getElementById('modalEditAmount').value = snapshot.val().amount || "";
+      }
+    } catch(err) { console.error(err); }
+    document.getElementById('editModal').style.display = 'block';
+  }
+
+  document.getElementById('closeModalBtn').addEventListener('click', () => {
+    document.getElementById('editModal').style.display = 'none';
+  });
+
+  // =========================================================
+  // 🚀 UPDATE: Multiple Images Drive Loop & Firebase Sync Array
+  // =========================================================
+  document.getElementById('uploadBtn').addEventListener('click', async () => {
+    const fileInput = document.getElementById('modalFileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const statusDiv = document.getElementById('modalStatus');
+    const updatedDesc = document.getElementById('modalEditDesc').value.trim();
+    const updatedAmount = document.getElementById('modalEditAmount').value.trim();
     
-    const file = fileInput.files[0];
-    const reader = new FileReader();
+    if(!updatedDesc || !updatedAmount) { alert("Fields cannot be empty!"); return; }
     
     uploadBtn.disabled = true;
-    resultDiv.innerHTML = "<b>Uploading... Kripya thoda intezar karein.</b>";
-    
-    reader.onload = function(e) {
-      const base64Data = e.target.result;
-      const fileName = file.name;
-      
-      // External HTML se Apps Script API ko data bhejna (Fetch API use karke)
-      fetch(WEB_APP_URL, {
-        method: "POST",
-        body: JSON.stringify({
-          base64Data: base64Data,
-          fileName: fileName
-        })
-      })
-      .then(response => response.json())
-      .then(response => {
-        uploadBtn.disabled = false;
-        if (response.status === 'success') {
-          resultDiv.innerHTML = `
-            <p style="color: green;"><b>Image successfully upload ho gayi hai!</b></p>
-            <p>Aapka shareable link yeh raha:</p>
-            <a class="success-link" href="${response.url}" target="_blank">${response.url}</a>
-          `;
-        } else {
-          resultDiv.innerHTML = `<p style="color: red;">Error: ${response.message}</p>`;
-        }
-      })
-      .catch(error => {
-        uploadBtn.disabled = false;
-        resultDiv.innerHTML = `<p style="color: red;">Error: Connection fail ho gaya ya URL sahi nahi hai.</p>`;
-        console.error(error);
+    const files = fileInput.files;
+    const uploadedUrls = []; 
+
+    // Loop for Sequential Upload to Google Drive
+    if (files.length > 0) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        statusDiv.innerHTML = `Uploading file ${i + 1} of ${files.length}: <br><b>${file.name}</b>...`;
+        try {
+          const base64Data = await convertFileToBase64(file);
+          const response = await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify({
+              base64Data: base64Data,
+              fileName: `tx_${currentEditingId}_doc_${Date.now()}_${file.name}`
+            })
+          });
+          const result = await response.json();
+          if (result.status === 'success') { uploadedUrls.push(result.url); }
+        } catch (err) { console.error("Error file: " + file.name, err); }
+      }
+    }
+
+    // Merge Array data and Update final Firebase record
+    statusDiv.innerHTML = "Syncing with Firebase Database...";
+    const specificTxRef = ref(db, `transactions/${currentEditingId}`);
+    try {
+      const snapshot = await get(specificTxRef);
+      const txData = snapshot.val() || {};
+      let existingLinks = txData.billLinks || [];
+      let combinedLinks = existingLinks.concat(uploadedUrls);
+
+      await update(specificTxRef, {
+        description: updatedDesc,
+        amount: parseFloat(updatedAmount),
+        billLinks: combinedLinks
       });
-    };
-    
-    reader.readAsDataURL(file);
+
+      statusDiv.innerHTML = "<span style='color:green;'>✓ System successfully updated!</span>";
+      setTimeout(() => {
+        uploadBtn.disabled = false;
+        document.getElementById('editModal').style.display = 'none';
+      }, 2000);
+    } catch (error) {
+      statusDiv.innerHTML = "<span style='color:red;'>Error: " + error.message + "</span>";
+      uploadBtn.disabled = false;
+    }
+  });
+
+  function convertFileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
   }
 </script>
-
 </body>
 </html>
+
+
+
