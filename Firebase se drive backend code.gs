@@ -1,0 +1,66 @@
+// 🔴 APNA FIREBASE DATABASE URL YAHA DALEIN (Last mein / zaroor lagayein)
+const FIREBASE_DB_URL = "https://shemacc-3ccac-default-rtdb.asia-southeast1.firebasedatabase.app/";
+
+
+function backgroundSyncFirebaseToDrive() {
+  try {
+    // 1. Firebase se sabhi transactions fetch karna
+    var response = UrlFetchApp.fetch(FIREBASE_DB_URL + "transactions.json");
+    var data = JSON.parse(response.getContentText());
+    
+    if (!data) return; // Agar koi transaction nahi hai toh wapas laut jao
+
+    // 2. Loop chalakar check karna kis record mein Base64 image bachi hai
+    for (var id in data) {
+      var tx = data[id];
+      
+      // Agar billLinks array exist karta hai
+      if (tx.billLinks && tx.billLinks.length > 0) {
+        var updatedLinks = [];
+        var isUpdated = false;
+
+        for (var i = 0; i < tx.billLinks.length; i++) {
+          var currentItem = tx.billLinks[i];
+
+          // Check agar item ek Base64 string hai (naa ki Google Drive ka link)
+          if (currentItem.indexOf("data:image") === 0 || currentItem.indexOf("data:application/pdf") === 0) {
+            
+            // Base64 ko safe image blob mein convert karna
+            var splitData = currentItem.split(',');
+            var contentType = currentItem.match(/:(.*?);/)[1];
+            var decodedData = Utilities.base64Decode(splitData[1]);
+            
+            var fileName = "bg_tx_" + id + "_doc_" + i + "_" + Date.now();
+            var blob = Utilities.newBlob(decodedData, contentType, fileName);
+            
+            // Drive mein file save karke public permissions dena
+            var file = DriveApp.createFile(blob);
+            file.setSharing(DriveApp.Access.ANYONE, DriveApp.Permission.VIEW);
+            
+            // Drive ka direct embed URL lena
+            var driveUrl = file.getUrl().replace('/view?usp=drivesdk', '/preview').replace('/view', '/preview');
+            
+            updatedLinks.push(driveUrl);
+            isUpdated = true;
+          } else {
+            // Agar pehle se hi link hai, toh use badle bina waisa hi rakhna hai
+            updatedLinks.push(currentItem);
+          }
+        }
+
+        // 3. Agar koi bhi image convert hui hai, toh sirf use Firebase mein update karna
+        if (isUpdated) {
+          var options = {
+            "method": "patch",
+            "contentType": "application/json",
+            "payload": JSON.stringify({ "billLinks": updatedLinks })
+          };
+          UrlFetchApp.fetch(FIREBASE_DB_URL + "transactions/" + id + ".json", options);
+          Logger.log("Successfully synced record ID: " + id);
+        }
+      }
+    }
+  } catch (error) {
+    Logger.log("Error in background sync: " + error.toString());
+  }
+}
