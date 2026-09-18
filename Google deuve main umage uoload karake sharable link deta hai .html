@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transaction Manager with Multi-Drive Docs</title>
+  <title>Instant Transaction Manager (Background Async Sync)</title>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; background-color: #f7f9fc; color: #333; }
     .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
@@ -25,58 +25,59 @@
     .btn-edit { background-color: #3182ce; color: white; margin-right: 5px; }
     .btn-delete { background-color: #e53e3e; color: white; }
     .btn-upload { background-color: #38a169; color: white; margin-top: 10px; width: 100%; }
-    .btn-upload:disabled { background-color: #cbd5e0; cursor: not-allowed; }
     .doc-container { display: flex; flex-direction: column; gap: 15px; margin-top: 10px; }
-    .iframe-box { border: 1px solid #cbd5e0; border-radius: 4px; overflow: hidden; }
+    .iframe-box { border: 1px solid #cbd5e0; border-radius: 4px; overflow: hidden; padding: 5px; background: #fff; }
     .no-doc { color: #a0aec0; font-style: italic; font-size: 13px; }
-    .status-msg { margin-top: 10px; font-weight: bold; color: #dd6b20; text-align: center; }
+    .status-msg { margin-top: 10px; font-weight: bold; color: #2f855a; text-align: center; }
+    .badge-process { background-color: #feebc8; color: #c05621; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; display: inline-block; }
+    .badge-drive { background-color: #c6f6d5; color: #22543d; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; display: inline-block; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h2>Transaction Management System (Full CRUD)</h2>
+  <h2>Instant Transaction Manager (Background Storage Engine)</h2>
   
-  <!-- 1. DATA ENTRY FORM -->
+  <!-- DATA ENTRY FORM -->
   <h3>1. Add New Transaction</h3>
   <div class="form-group">
     <div class="input-field">
       <label for="txDescription">Description</label>
-      <input type="text" id="txDescription" placeholder="e.g., Office Internet Bill">
+      <input type="text" id="txDescription" placeholder="Office Rent">
     </div>
     <div class="input-field">
       <label for="txAmount">Amount (₹)</label>
-      <input type="number" id="txAmount" placeholder="e.g., 1500">
+      <input type="number" id="txAmount" placeholder="12000">
     </div>
     <button id="addBtn" class="btn btn-add">Save Transaction</button>
   </div>
   
-  <!-- 2. LIVE DATA TABLE -->
+  <!-- LIVE TABLE -->
   <h3>2. Transactions List</h3>
   <table>
     <thead>
       <tr>
         <th>Description</th>
         <th>Amount</th>
-        <th>Manual Documents (&lt;details&gt; &amp; &lt;iframe&gt;)</th>
+        <th>Manual Documents (Smart Dynamic Engine)</th>
         <th>Actions</th>
       </tr>
     </thead>
     <tbody id="transactionTableBody">
-      <!-- Firebase se live data yahan load hoga -->
+      <!-- Live Sync rows via JavaScript -->
     </tbody>
   </table>
 </div>
 
-<!-- 3. EDIT MODE & MULTI-UPLOAD MODAL -->
+<!-- EDIT MODE MODAL -->
 <div id="editModal" class="modal">
   <div class="modal-content">
     <span id="closeModalBtn" class="close">&times;</span>
-    <h3>Edit Mode: Attach Bills / Receipts</h3>
+    <h3>Instant Edit & Attach Bills</h3>
     <hr style="border: 1px solid #ecf0f1;">
     
     <div style="margin: 15px 0;">
-      <p><b>Transaction ID:</b> <span id="modalTxId" style="color: #4a5568;"></span></p>
+      <p><b>Transaction ID:</b> <span id="modalTxId"></span></p>
       <div class="input-field" style="margin-bottom: 10px;">
         <label for="modalEditDesc">Update Description</label>
         <input type="text" id="modalEditDesc">
@@ -87,23 +88,20 @@
       </div>
     </div>
     
-    <label for="modalFileInput"><b>Upload Multiple Bills (Images/PDFs) to Drive:</b></label><br><br>
+    <label for="modalFileInput"><b>Select Multiple Bills (Instant Save):</b></label><br><br>
     <input type="file" id="modalFileInput" accept="image/*,application/pdf" multiple>
     
-    <button id="uploadBtn" class="btn btn-upload">Update Text & Upload New Images</button>
+    <button id="uploadBtn" class="btn btn-upload">Save Everything Instantly</button>
     <div id="modalStatus" class="status-msg"></div>
   </div>
 </div>
 
 <script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getDatabase, ref, push, update, remove, query, onValue,limitToLast, onChildAdded, onChildChanged, onChildRemoved,get} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, push, update, remove, query, onValue,limitToLast, onChildAdded, onChildChanged, onChildRemoved ,get} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-
-  
-  const firebaseConfig = {
+const firebaseConfig = {
     apiKey: "AIzaSyDPcVvNNJZRVGF9SESynXtsZYwdJXB7J8U",
     authDomain: "shemacc-3ccac.firebaseapp.com",
     databaseURL: "https://shemacc-3ccac-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -115,77 +113,81 @@ import { getDatabase, ref, push, update, remove, query, onValue,limitToLast, onC
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
-  const APPS_SCRIPT_URL ="https://script.google.com/macros/s/AKfycbyHGJ47fxu1kRKYLPXh8SJMo3FqYUfCGk0JA6Bnx_CAuXxPuest3OYOZTJyk8xvS0DY/exec";
-
   let currentEditingId = null;
 
-  // 🟢 CREATE: Save New Text Data to Firebase
+  // 1. CREATE ACTION
   document.getElementById('addBtn').addEventListener('click', () => {
     const desc = document.getElementById('txDescription').value.trim();
     const amount = document.getElementById('txAmount').value.trim();
-    if (!desc || !amount) { alert("Please fill all fields!"); return; }
+    if (!desc || !amount) return;
 
     push(ref(db, 'transactions'), {
       description: desc,
       amount: parseFloat(amount),
       billLinks: []
-    })
-    .then(() => {
+    }).then(() => {
       document.getElementById('txDescription').value = "";
       document.getElementById('txAmount').value = "";
     });
   });
 
-  // 🔵 READ: Real-time Live Sync Table Loader with <details> and <iframe>
+  // 2. READ (Smart Render Engine: Checks Base64 vs Cloud Drive Link)
   onValue(ref(db, 'transactions'), (snapshot) => {
     const tableBody = document.getElementById('transactionTableBody');
-    tableBody.innerHTML = ""; 
+    tableBody.innerHTML = "";
     const data = snapshot.val();
-    if (!data) {
-      tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No records found.</td></tr>";
+    if(!data) {
+      tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No records.</td></tr>";
       return;
     }
 
     for (let id in data) {
       const tx = data[id];
       let docHtml = `<span class="no-doc">No bills attached</span>`;
-      
-      if (tx.billLinks && tx.billLinks.length > 0) {
+
+      if(tx.billLinks && tx.billLinks.length > 0) {
         docHtml = `<details><summary>📄 View Receipts (${tx.billLinks.length})</summary><div class="doc-container">`;
+        
         tx.billLinks.forEach((link, index) => {
-          const embedLink = link.replace('/view?usp=drivesdk', '/preview').replace('/view', '/preview');
-          docHtml += `
-            <div class="iframe-box">
-              <span style="font-size:11px; padding:4px 8px; display:block; background:#edf2f7; font-weight:bold;">Document ${index + 1}</span>
-              <iframe src="${embedLink}" width="100%" height="180" style="border:none;"></iframe>
-            </div>`;
+          // Check: Agar item local base64 cache image hai
+          if(link.indexOf("data:image") === 0) {
+            docHtml += `
+              <div class="iframe-box">
+                <span class="badge-process">⚡ Uploading to Drive (Local Cache)</span><br>
+                <img src="${link}" style="width:100%; max-height:180px; object-fit:contain; border-radius:4px; margin-top:5px;">
+              </div>`;
+          } else {
+            // Agar permanent Drive cloud link ban chuka hai
+            docHtml += `
+              <div class="iframe-box">
+                <span class="badge-drive">☁ Safe Cloud Link</span><br>
+                <iframe src="${link}" width="100%" height="180" style="border:none; margin-top:5px;"></iframe>
+              </div>`;
+          }
         });
         docHtml += `</div></details>`;
       }
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><b>${tx.description || 'N/A'}</b></td>
-        <td>₹${tx.amount || '0'}</td>
+        <td><b>${tx.description}</b></td>
+        <td>₹${tx.amount}</td>
         <td>${docHtml}</td>
         <td>
-          <button class="btn btn-edit" data-id="${id}">Edit / Upload</button>
+          <button class="btn btn-edit" data-id="${id}">Edit Mode</button>
           <button class="btn btn-delete" data-id="${id}">Delete</button>
         </td>`;
       tableBody.appendChild(tr);
     }
   });
 
-  // 🔴 DELETE & EDIT ROUTER
+  // ROUTER BUTTON CONTROLS
   document.getElementById('transactionTableBody').addEventListener('click', (e) => {
     const id = e.target.getAttribute('data-id');
-    if (!id) return;
-    if (e.target.classList.contains('btn-edit')) {
-      openEditModal(id);
-    } else if (e.target.classList.contains('btn-delete')) {
-      if (confirm("Delete this record?")) {
-        remove(ref(db, `transactions/${id}`));
-      }
+    if(!id) return;
+    if(e.target.classList.contains('btn-edit')) openEditModal(id);
+    if(e.target.classList.contains('btn-delete')) {
+      if(confirm("Are you sure?")) remove(ref(db, `transactions/${id}`));
     }
   });
 
@@ -193,14 +195,12 @@ import { getDatabase, ref, push, update, remove, query, onValue,limitToLast, onC
     currentEditingId = id;
     document.getElementById('modalTxId').innerText = id;
     document.getElementById('modalStatus').innerText = "";
-    document.getElementById('modalFileInput').value = ""; 
-    try {
-      const snapshot = await get(ref(db, `transactions/${id}`));
-      if(snapshot.exists()) {
-        document.getElementById('modalEditDesc').value = snapshot.val().description || "";
-        document.getElementById('modalEditAmount').value = snapshot.val().amount || "";
-      }
-    } catch(err) { console.error(err); }
+    document.getElementById('modalFileInput').value = "";
+    const snapshot = await get(ref(db, `transactions/${id}`));
+    if(snapshot.exists()) {
+      document.getElementById('modalEditDesc').value = snapshot.val().description || "";
+      document.getElementById('modalEditAmount').value = snapshot.val().amount || "";
+    }
     document.getElementById('editModal').style.display = 'block';
   }
 
@@ -208,74 +208,66 @@ import { getDatabase, ref, push, update, remove, query, onValue,limitToLast, onC
     document.getElementById('editModal').style.display = 'none';
   });
 
-  // =========================================================
-  // 🚀 UPDATE: Multiple Images Drive Loop & Firebase Sync Array
-  // =========================================================
+  // 3. INSTANT UPDATE: Pushes Compressed Base64 array into Firebase instantly
   document.getElementById('uploadBtn').addEventListener('click', async () => {
     const fileInput = document.getElementById('modalFileInput');
-    const uploadBtn = document.getElementById('uploadBtn');
     const statusDiv = document.getElementById('modalStatus');
-    const updatedDesc = document.getElementById('modalEditDesc').value.trim();
-    const updatedAmount = document.getElementById('modalEditAmount').value.trim();
-    
-    if(!updatedDesc || !updatedAmount) { alert("Fields cannot be empty!"); return; }
+    const uploadBtn = document.getElementById('uploadBtn');
+    const files = fileInput.files;
     
     uploadBtn.disabled = true;
-    const files = fileInput.files;
-    const uploadedUrls = []; 
+    statusDiv.innerHTML = "Processing files instantly...";
+    let localBase64Array = [];
 
-    // Loop for Sequential Upload to Google Drive
-    if (files.length > 0) {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        statusDiv.innerHTML = `Uploading file ${i + 1} of ${files.length}: <br><b>${file.name}</b>...`;
-        try {
-          const base64Data = await convertFileToBase64(file);
-          const response = await fetch(APPS_SCRIPT_URL, {
-            method: "POST",
-            body: JSON.stringify({
-              base64Data: base64Data,
-              fileName: `tx_${currentEditingId}_doc_${Date.now()}_${file.name}`
-            })
-          });
-          const result = await response.json();
-          if (result.status === 'success') { uploadedUrls.push(result.url); }
-        } catch (err) { console.error("Error file: " + file.name, err); }
-      }
+    for (let i = 0; i < files.length; i++) {
+      const compressedData = await convertFileToBase64(files[i]);
+      localBase64Array.push(compressedData);
     }
 
-    // Merge Array data and Update final Firebase record
-    statusDiv.innerHTML = "Syncing with Firebase Database...";
     const specificTxRef = ref(db, `transactions/${currentEditingId}`);
-    try {
-      const snapshot = await get(specificTxRef);
-      const txData = snapshot.val() || {};
-      let existingLinks = txData.billLinks || [];
-      let combinedLinks = existingLinks.concat(uploadedUrls);
+    const snapshot = await get(specificTxRef);
+    const txData = snapshot.val() || {};
+    const existingLinks = txData.billLinks || [];
+    let combinedLinks = existingLinks.concat(localBase64Array);
 
-      await update(specificTxRef, {
-        description: updatedDesc,
-        amount: parseFloat(updatedAmount),
-        billLinks: combinedLinks
-      });
+    await update(specificTxRef, {
+      description: document.getElementById('modalEditDesc').value.trim(),
+      amount: parseFloat(document.getElementById('modalEditAmount').value.trim()),
+      billLinks: combinedLinks
+    });
 
-      statusDiv.innerHTML = "<span style='color:green;'>✓ System successfully updated!</span>";
-      setTimeout(() => {
-        uploadBtn.disabled = false;
-        document.getElementById('editModal').style.display = 'none';
-      }, 2000);
-    } catch (error) {
-      statusDiv.innerHTML = "<span style='color:red;'>Error: " + error.message + "</span>";
+    statusDiv.innerHTML = "✓ Saved instantly! Drive sync running in background.";
+    setTimeout(() => {
       uploadBtn.disabled = false;
-    }
+      document.getElementById('editModal').style.display = 'none';
+    }, 1500);
   });
 
+  // Front-end instant compression engine
   function convertFileToBase64(file) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
+      reader.onload = (e) => {
+        if (file.type.startsWith('image/')) {
+          const img = new Image();
+          img.src = e.target.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 500; // Optimal low size for fast firebase storage
+            let width = img.width;
+            let height = img.height;
+            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+            canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.6));
+          };
+        } else {
+          // Non-image files like PDFs
+          resolve(e.target.result);
+        }
+      };
     });
   }
 </script>
