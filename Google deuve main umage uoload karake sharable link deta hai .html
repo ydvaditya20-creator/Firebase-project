@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>External Image Uploader</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f4f9; }
+    .container { max-width: 500px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    input[type="file"] { margin-bottom: 15px; }
+    button { background-color: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
+    button:disabled { background-color: #cccccc; }
+    #result { margin-top: 20px; word-break: break-all; }
+    .success-link { color: #0066cc; font-weight: bold; }
+    #preview { max-width: 100%; margin-top: 15px; display: none; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Upload Image to Google Drive (External)</h2>
+  
+  <input type="file" id="imageInput" accept="image/*" onchange="previewImage()">
+  <br>
+  <img id="preview" alt="Preview">
+  <br>
+  <button id="uploadBtn" onclick="uploadFile()">Upload Image</button>
+  
+  <div id="result"></div>
+</div>
+
+<script>
+  // 🔴 APNA DEPLOYED APPS SCRIPT WEB APP URL YAHA PASTE KAREIN
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyHGJ47fxu1kRKYLPXh8SJMo3FqYUfCGk0JA6Bnx_CAuXxPuest3OYOZTJyk8xvS0DY/exec";
+
+  function previewImage() {
+    const file = document.getElementById('imageInput').files[0];
+    const preview = document.getElementById('preview');
+    
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+      }
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function uploadFile() {
+    const fileInput = document.getElementById('imageInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const resultDiv = document.getElementById('result');
+    
+    if (fileInput.files.length === 0) {
+      alert('Kripya pehle ek image select karein!');
+      return;
+    }
+    
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    
+    uploadBtn.disabled = true;
+    resultDiv.innerHTML = "<b>Uploading... Kripya thoda intezar karein.</b>";
+    
+    reader.onload = function(e) {
+      const base64Data = e.target.result;
+      const fileName = file.name;
+      
+      // External HTML se Apps Script API ko data bhejna (Fetch API use karke)
+      fetch(WEB_APP_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          base64Data: base64Data,
+          fileName: fileName
+        })
+      })
+      .then(response => response.json())
+      .then(response => {
+        uploadBtn.disabled = false;
+        if (response.status === 'success') {
+          resultDiv.innerHTML = `
+            <p style="color: green;"><b>Image successfully upload ho gayi hai!</b></p>
+            <p>Aapka shareable link yeh raha:</p>
+            <a class="success-link" href="${response.url}" target="_blank">${response.url}</a>
+          `;
+        } else {
+          resultDiv.innerHTML = `<p style="color: red;">Error: ${response.message}</p>`;
+        }
+      })
+      .catch(error => {
+        uploadBtn.disabled = false;
+        resultDiv.innerHTML = `<p style="color: red;">Error: Connection fail ho gaya ya URL sahi nahi hai.</p>`;
+        console.error(error);
+      });
+    };
+    
+    reader.readAsDataURL(file);
+  }
+</script>
+
+</body>
+</html>
