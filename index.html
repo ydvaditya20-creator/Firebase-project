@@ -397,38 +397,38 @@ function renderRowStandard(row, data) {
 
     let entriesHtml = `<div style="display:flex; flex-direction:column; gap:4px;">`;
     if(data.entries) {
-        data.entries.forEach(e => {
+        data.entries.slice().reverse().forEach(e => {
             entriesHtml += `<span><span class="badge badge-${e.type.toLowerCase()}">${e.type}</span> <b>${e.account}</b>: ₹${e.amount}</span>`;
         });
     }
     entriesHtml += `</div>`;
     const safeNarrationText = data.narration ? data.narration.replace(/\n/g, '<br>') : '';
 
-    // 🔥 डायनामिक ड्राइव और लोकल बेस64 को पहचानने वाला नया लॉजिक
     let docHtml = `<span class="no-doc" style="font-size:11px; color:#999; display:block; margin-top:5px;">No bills attached</span>`;
 
     if(data.billLinks && data.billLinks.length > 0) {
-        // मल्टीपल फाइल्स को सपोर्ट करने के लिए <details> टैग का इस्तेमाल किया
         docHtml = `
             <details style="margin-top: 6px; font-size: 12px; background: #fafafa; padding: 4px; border: 1px solid #ddd; border-radius: 4px;">
                 <summary style="cursor: pointer; font-weight: bold; color: #333;">📄 View Receipts (${data.billLinks.length})</summary>
-                <div class="doc-container" style="margin-top:5px; display:flex; flex-direction:column; gap:8px;">
+                <!-- 🛠️ यहाँ flex-direction: row और flex-wrap: wrap जोड़ा गया है ताकि एक लाइन में दिखें -->
+                <div class="doc-container" style="margin-top:5px; display:flex; flex-direction:row; flex-wrap:wrap; gap:8px;">
         `;
         
         data.billLinks.forEach((link, index) => {
-            // Check 1: अगर इमेज अभी लोकल कंप्रेस्ड Base64 फॉर्म में है (अपलोडिंग प्रोसेस चालू है)
+            // Check 1: अगर इमेज अभी लोकल कंप्रेस्ड Base64 फॉर्म में है
             if(link.indexOf("data:image") === 0) {
+                // 🛠️ flexbox लेआउट को सही रखने के लिए width को सीमित किया (e.g., max-width: 200px)
                 docHtml += `
-                    <div class="iframe-box" style="padding: 5px; background: #fff3cd; border: 1px solid #ffeba0; border-radius: 4px;">
-                        <span class="badge-process" style="background:#ffc107; color:#000; padding:2px 5px; font-size:10px; font-weight:bold; border-radius:3px;">⚡ Uploading to Drive (Local Cache)</span><br>
-                        <img src="${link}" style="width:100%; max-height:180px; object-fit:contain; border-radius:4px; margin-top:5px;">
+                    <div class="iframe-box" style="flex: 1 1 180px; max-width: 200px; padding: 5px; background: #fff3cd; border: 1px solid #ffeba0; border-radius: 4px;">
+                        <span class="badge-process" style="background:#ffc107; color:#000; padding:2px 5px; font-size:10px; font-weight:bold; border-radius:3px;">⚡ Uploading</span><br>
+                        <img src="${link}" style="width:100%; max-height:120px; object-fit:contain; border-radius:4px; margin-top:5px;">
                     </div>`;
             } else {
-                // Check 2: अगर बैकग्राउंड स्क्रिप्ट ने इसे परमानेंट Google Drive क्लाउड लिंक में बदल दिया है
+                // Check 2: अगर क्लाउड लिंक है
                 docHtml += `
-                    <div class="iframe-box" style="padding: 5px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;">
-                        <span class="badge-drive" style="background:#28a745; color:#fff; padding:2px 5px; font-size:10px; font-weight:bold; border-radius:3px;">☁ Safe Cloud Link</span><br>
-                        <iframe src="${link}" width="100%" height="180" style="border:none; margin-top:5px; border-radius:4px; background:#fff;"></iframe>
+                    <div class="iframe-box" style="flex: 1 1 180px; max-width: 200px; padding: 5px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;">
+                        <span class="badge-drive" style="background:#28a745; color:#fff; padding:2px 5px; font-size:10px; font-weight:bold; border-radius:3px;">☁ Cloud Link</span><br>
+                        <iframe src="${link}" width="100%" height="120" style="border:none; margin-top:5px; border-radius:4px; background:#fff;"></iframe>
                     </div>`;
             }
         });
@@ -443,7 +443,6 @@ function renderRowStandard(row, data) {
         <td>${entriesHtml}</td>
         <td>
             <span style="white-space: pre-line;">${safeNarrationText}</span>
-            <!-- यहाँ आपका डायनामिक बिल/रसीद वाला बॉक्स रेंडर होगा -->
             ${docHtml}
         </td>
         <td>
@@ -457,11 +456,17 @@ function renderRowStandard(row, data) {
 
 
 
+// एडिट मोड में लिंक्स को मैनेज करने के लिए एक ग्लोबल कैश ऑब्जेक्ट
+window.editBillLinksCache = window.editBillLinksCache || {};
+
 window.triggerInlineEdit = function(rowId) {
     const row = document.getElementById(rowId);
     const key = row.dataset.key;
     const data = cacheRowData[rowId];
     if(!data) return;
+
+    // इस स्पेसिफिक रो (Row) के मौजूदा बिल लिंक्स को एडिट कैश में स्टोर करें
+    window.editBillLinksCache[key] = data.billLinks ? [...data.billLinks] : [];
 
     let editRowsHtml = `<div id="edit-container-${key}">`;
     data.entries.forEach((e, idx) => {
@@ -478,7 +483,26 @@ window.triggerInlineEdit = function(rowId) {
     });
     editRowsHtml += `</div>`;
 
-    // Narration के ठीक नीचे <details> टैग के साथ इमेज अपलोड जोड़ा गया है
+    // 📄 मौजूदा इमेजेस को डिलीट बटन के साथ दिखाने के लिए HTML जेनरेट करना
+    let currentDocsHtml = `<div id="edit-preview-container-${key}" style="display:flex; flex-direction:row; flex-wrap:wrap; gap:8px; margin-bottom:8px;">`;
+    if(window.editBillLinksCache[key].length === 0) {
+        currentDocsHtml += `<span style="font-size:11px; color:#999;">No bills attached</span>`;
+    } else {
+        window.editBillLinksCache[key].forEach((link, idx) => {
+            const isLocal = link.indexOf("data:image") === 0;
+            currentDocsHtml += `
+                <div id="edit-img-box-${key}-${idx}" style="position:relative; width:90px; padding:3px; background:${isLocal ? '#fff3cd':'#d4edda'}; border:1px solid ${isLocal ? '#ffeba0':'#c3e6cb'}; border-radius:4px;">
+                    <!-- इमेज को हटाने के लिए लाल रंग का डिलीट बटन -->
+                    <button type="button" onclick="removeImageFromEdit('${key}', ${idx})" style="position:absolute; top:-4px; right:-4px; background:red; color:white; border:none; border-radius:50%; width:18px; height:18px; font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:bold; z-index:10;">×</button>
+                    ${isLocal 
+                        ? `<img src="${link}" style="width:100%; height:60px; object-fit:contain; border-radius:3px;">`
+                        : `<iframe src="${link}" width="100%" height="60" style="border:none; background:#fff; border-radius:3px;"></iframe>`
+                    }
+                </div>`;
+        });
+    }
+    currentDocsHtml += `</div>`;
+
     row.innerHTML = `
         <td><small><b>${data.txn_id}</b></small></td>
         <td><input type="text" value="${data.voucher_no}" id="edit-vouch-${key}" style="width:90px; font-weight:bold;"></td>
@@ -487,12 +511,17 @@ window.triggerInlineEdit = function(rowId) {
         <td>
             <textarea id="edit-narr-${key}" style="width:100%; min-height:50px; margin-bottom:5px;">${data.narration}</textarea>
             
-            <!-- <details> टैग का इस्तेमाल यहाँ किया गया है -->
-            <details style="margin-top: 5px; font-size: 12px; background: #f5f5f5; padding: 4px; border-radius: 4px; border: 1px solid #ddd;">
-                <summary style="cursor: pointer; font-weight: bold; color: #333;">📎 Attach Bill / Photo</summary>
-                <div style="margin-top: 5px; padding-top: 5px; border-top: 1px dashed #ccc;">
-                    <input type="file" id="edit-file-${key}" accept="image/*" style="font-size:11px; width:100%;">
-                    <div id="edit-status-${key}" style="font-size:11px; color:blue; margin-top:2px; font-weight:bold;"></div>
+            <details open style="margin-top: 5px; font-size: 12px; background: #f5f5f5; padding: 6px; border-radius: 4px; border: 1px solid #ddd;">
+                <summary style="cursor: pointer; font-weight: bold; color: #333;">📎 Manage Bills / Photos</summary>
+                <div style="margin-top: 5px; padding-top: 5px;">
+                    <!-- यहाँ पुरानी इमेजेस फ्लेक्स लेआउट में दिखेंगी -->
+                    ${currentDocsHtml}
+                    
+                    <div style="border-top: 1px dashed #ccc; padding-top: 5px; margin-top: 5px;">
+                        <span style="font-size:11px; font-weight:bold; color:#555; display:block; margin-bottom:2px;">Add More Files:</span>
+                        <input type="file" id="edit-file-${key}" accept="image/*" multiple style="font-size:11px; width:100%;">
+                        <div id="edit-status-${key}" style="font-size:11px; color:blue; margin-top:2px; font-weight:bold;"></div>
+                    </div>
                 </div>
             </details>
         </td>
@@ -503,6 +532,23 @@ window.triggerInlineEdit = function(rowId) {
     `;
 };
 
+// ❌ इमेज को एडिट स्क्रीन से लाइव रिमूव करने का हेल्पर फंक्शन
+window.removeImageFromEdit = function(key, index) {
+    if(window.editBillLinksCache[key]) {
+        // एरे में से उस इंडेक्स की इमेज हटाएँ
+        window.editBillLinksCache[key].splice(index, 1);
+        
+        // यूज़र इंटरफ़ेस (UI) को तुरंत अपडेट करने के लिए एलिमेंट को डिलीट करें
+        const imgBox = document.getElementById(`edit-img-box-${key}-${index}`);
+        if(imgBox) imgBox.remove();
+        
+        // यदि अब कोई भी इमेज नहीं बची तो मैसेज दिखाएँ
+        const container = document.getElementById(`edit-preview-container-${key}`);
+        if(container && window.editBillLinksCache[key].length === 0) {
+            container.innerHTML = `<span style="font-size:11px; color:#999;">No bills attached</span>`;
+        }
+    }
+};
 
 
 
@@ -516,7 +562,6 @@ window.saveInlineEdit = async function(rowId) {
     const accounts = row.querySelectorAll(`.edit-acc-${key}`);
     const amounts = row.querySelectorAll(`.edit-amt-${key}`);
     
-    // नए इनपुट और बटन्स के रेफरेंस
     const fileInput = document.getElementById(`edit-file-${key}`);
     const statusDiv = document.getElementById(`edit-status-${key}`);
     const saveBtn = document.getElementById(`save-btn-${key}`);
@@ -536,7 +581,6 @@ window.saveInlineEdit = async function(rowId) {
         return;
     }
 
-    // सेव बटन डिसेबल करें ताकि डबल सबमिशन न हो
     saveBtn.disabled = true;
     let localBase64Array = [];
 
@@ -545,7 +589,6 @@ window.saveInlineEdit = async function(rowId) {
         statusDiv.innerHTML = "WhatsApp स्टाइल कंप्रेशन चल रहा है...";
         try {
             for (let i = 0; i < files.length; i++) {
-                // सुरक्षित कंप्रेशन फंक्शन को कॉल करें
                 const compressedData = await convertInlineFileToBase64(files[i]);
                 localBase64Array.push(compressedData);
             }
@@ -557,9 +600,9 @@ window.saveInlineEdit = async function(rowId) {
         }
     }
 
-    // पुराने बिल लिंक्स को नए कंप्रेस्ड लिंक्स के साथ जोड़ें
-    const existingLinks = oldData.billLinks || [];
-    let combinedLinks = existingLinks.concat(localBase64Array);
+    // 🔥 मोडिफाइड लॉजिक: डिलीट करने के बाद बचे हुए लिंक्स को ही नए अपलोडेड लिंक्स के साथ कंबाइन करें
+    const remainingLinks = window.editBillLinksCache[key] || [];
+    let combinedLinks = remainingLinks.concat(localBase64Array);
 
     try {
         await update(ref(db, `transactions/${branch}/${key}`), {
@@ -568,17 +611,27 @@ window.saveInlineEdit = async function(rowId) {
             date: document.getElementById(`edit-date-${key}`).value,
             entries: updatedEntries,
             narration: document.getElementById(`edit-narr-${key}`).value.trim(),
-            billLinks: combinedLinks, // नए बिल लिंक्स यहाँ जुड़ गए
+            billLinks: combinedLinks, // अपडेटेड एरे (जिसमें से डिलीटेड हट चुके हैं) यहाँ सेव होगा
             timestamp: oldData.timestamp || Date.now()
         });
         
         statusDiv.innerHTML = "<span style='color:green;'>✓ Saved Successfully!</span>";
+        
+        // ऑपरेशन सफल होने पर ग्लोबल कैश साफ करें
+        delete window.editBillLinksCache[key];
+
         setTimeout(() => {
-            // रेंडर करने का जो भी आपका स्टैंडर्ड तरीका हो (जैसे लिस्ट रिफ्रेश करना)
             if(typeof renderRowStandard === "function") {
+                // कैश डेटा को भी लोकल लेवल पर अपडेट कर दें ताकि व्यू सही दिखे
+                cacheRowData[rowId].billLinks = combinedLinks;
+                cacheRowData[rowId].voucher_no = document.getElementById(`edit-vouch-${key}`).value.trim();
+                cacheRowData[rowId].date = document.getElementById(`edit-date-${key}`).value;
+                cacheRowData[rowId].entries = updatedEntries;
+                cacheRowData[rowId].narration = document.getElementById(`edit-narr-${key}`).value.trim();
+                
                 renderRowStandard(row, cacheRowData[rowId]); 
             } else {
-                location.reload(); // अगर रिफ्रेश फ़ंक्शन न हो तो पेज लोड करें
+                location.reload();
             }
         }, 1000);
 
@@ -588,6 +641,7 @@ window.saveInlineEdit = async function(rowId) {
         saveBtn.disabled = false;
     }
 };
+
 
 window.triggerDelete = async function(rowId) {
     if(confirm("Delete this Tally multi-split voucher?")) {
