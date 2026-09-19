@@ -1,6 +1,8 @@
 // 🔴 APNA FIREBASE DATABASE URL YAHA DALEIN (Last mein / zaroor lagayein)
 const FIREBASE_DB_URL = "https://shemacc-3ccac-default-rtdb.asia-southeast1.firebasedatabase.app/";
 
+// 🔴 APNA FIREBASE DATABASE URL YAHA DALEIN (Last mein / zaroor lagayein)
+
 function backgroundSyncFirebaseToDrive() {
   try {
     // 1. Firebase se sabhi branches aur unke transactions fetch karna
@@ -35,7 +37,10 @@ function backgroundSyncFirebaseToDrive() {
               var contentType = currentItem.match(/:(.*?);/)[1];
               var decodedData = Utilities.base64Decode(splitData[1]);
               
-              var fileName = "bg_tx_" + id + "_doc_" + i + "_" + Date.now();
+              // 🌟 FILE NAME KO SIMPLE BANAYA (Voucher No + Txn ID + Index)
+              var vNo = tx.voucher_no ? tx.voucher_no : "NoVoucher";
+              var fileName = vNo + "_" + i + "_" + id ; 
+              
               var blob = Utilities.newBlob(decodedData, contentType, fileName);
               
               // Drive mein file save karke public permissions dena
