@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Instant Transaction Manager (Background Async Sync)</title>
+<script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+
+
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; background-color: #f7f9fc; color: #333; }
     .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
@@ -191,7 +194,7 @@ const firebaseConfig = {
     }
   });
 
-  async function openEditModal(id) {
+    async function openEditModal(id) {
     currentEditingId = id;
     document.getElementById('modalTxId').innerText = id;
     document.getElementById('modalStatus').innerText = "";
@@ -208,68 +211,88 @@ const firebaseConfig = {
     document.getElementById('editModal').style.display = 'none';
   });
 
-  // 3. INSTANT UPDATE: Pushes Compressed Base64 array into Firebase instantly
+  // 3. INSTANT UPDATE: WhatsApp की तरह कंप्रेस करके Base64 Firebase में सेव करेगा
   document.getElementById('uploadBtn').addEventListener('click', async () => {
     const fileInput = document.getElementById('modalFileInput');
     const statusDiv = document.getElementById('modalStatus');
     const uploadBtn = document.getElementById('uploadBtn');
     const files = fileInput.files;
     
-    uploadBtn.disabled = true;
-    statusDiv.innerHTML = "Processing files instantly...";
-    let localBase64Array = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const compressedData = await convertFileToBase64(files[i]);
-      localBase64Array.push(compressedData);
+    if (files.length === 0) {
+      statusDiv.innerHTML = "कृपया पहले फाइल चुनें।";
+      return;
     }
 
-    const specificTxRef = ref(db, `transactions/${currentEditingId}`);
-    const snapshot = await get(specificTxRef);
-    const txData = snapshot.val() || {};
-    const existingLinks = txData.billLinks || [];
-    let combinedLinks = existingLinks.concat(localBase64Array);
+    uploadBtn.disabled = true;
+    statusDiv.innerHTML = "WhatsApp की तरह फोटो छोटी की जा रही है...";
+    let localBase64Array = [];
 
-    await update(specificTxRef, {
-      description: document.getElementById('modalEditDesc').value.trim(),
-      amount: parseFloat(document.getElementById('modalEditAmount').value.trim()),
-      billLinks: combinedLinks
-    });
+    try {
+      for (let i = 0; i < files.length; i++) {
+        // यहाँ नया और सुरक्षित कंप्रेशन फंक्शन कॉल हो रहा है
+        const compressedData = await convertFileToBase64Secure(files[i]);
+        localBase64Array.push(compressedData);
+      }
 
-    statusDiv.innerHTML = "✓ Saved instantly! Drive sync running in background.";
-    setTimeout(() => {
+      statusDiv.innerHTML = "Firebase में सेव किया जा रहा है...";
+      const specificTxRef = ref(db, `transactions/${currentEditingId}`);
+      const snapshot = await get(specificTxRef);
+      const txData = snapshot.val() || {};
+      const existingLinks = txData.billLinks || [];
+      let combinedLinks = existingLinks.concat(localBase64Array);
+
+      await update(specificTxRef, {
+        description: document.getElementById('modalEditDesc').value.trim(),
+        amount: parseFloat(document.getElementById('modalEditAmount').value.trim()),
+        billLinks: combinedLinks
+      });
+
+      statusDiv.innerHTML = "✓ Saved instantly! Drive sync running in background.";
+      setTimeout(() => {
+        uploadBtn.disabled = false;
+        document.getElementById('editModal').style.display = 'none';
+      }, 1500);
+
+    } catch (error) {
+      console.error(error);
+      statusDiv.innerHTML = "<span style='color:red;'>⚠️ एरर आया! दोबारा कोशिश करें।</span>";
       uploadBtn.disabled = false;
-      document.getElementById('editModal').style.display = 'none';
-    }, 1500);
+    }
   });
 
-  // Front-end instant compression engine
-  function convertFileToBase64(file) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (e) => {
-        if (file.type.startsWith('image/')) {
-          const img = new Image();
-          img.src = e.target.result;
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 500; // Optimal low size for fast firebase storage
-            let width = img.width;
-            let height = img.height;
-            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-            canvas.width = width; canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', 0.6));
+  // नया सुरक्षित कंप्रेशन इंजन (यह 2GB RAM वाले फोन को कभी क्रैश नहीं होने देगा)
+  function convertFileToBase64Secure(file) {
+    return new Promise(async (resolve, reject) => {
+      // अगर फाइल इमेज है तो उसे WhatsApp की तरह छोटा करो
+      if (file.type.startsWith('image/')) {
+        const options = {
+          maxSizeMB: 0.2,          // फोटो को मात्र 200KB का बना देगा (डेटाबेस के लिए बेस्ट)
+          maxWidthOrHeight: 600,   // आपके पुराने 500px के करीब (600px सेट किया है)
+          useWebWorker: true       // बैकग्राउंड थ्रेड इस्तेमाल करेगा ताकि RAM फ्री रहे
+        };
+
+        try {
+          // बिना FileReader के सीधे फाइल को कंप्रेस करें
+          const compressedBlob = await imageCompression(file, options);
+          
+          // अब छोटी हो चुकी फाइल का Base64 बनाएं (यह रैम क्रैश नहीं करेगा)
+          const reader = new FileReader();
+          reader.readAsDataURL(compressedBlob);
+          reader.onloadend = () => {
+            resolve(reader.result); // कंप्रेस्ड Base64 रिटर्न करेगा
           };
-        } else {
-          // Non-image files like PDFs
-          resolve(e.target.result);
+        } catch (err) {
+          reject(err);
         }
-      };
+      } else {
+        // अगर इमेज नहीं है (जैसे PDF), तो सामान्य रूप से आगे बढ़ाएं
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onloadend = () => resolve(reader.result);
+      }
     });
   }
+
 </script>
 </body>
 </html>
