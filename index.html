@@ -589,6 +589,13 @@ window.saveInlineEdit = async function(rowId) {
     }
 };
 
+window.triggerDelete = async function(rowId) {
+    if(confirm("Delete this Tally multi-split voucher?")) {
+        const row = document.getElementById(rowId);
+        await remove(ref(db, `transactions/${row.dataset.branch}/${row.dataset.key}`));
+    }
+};
+    
 window.cancelInlineEdit = function(rowId) {
     const row = document.getElementById(rowId);
     const data = cacheRowData[rowId];
