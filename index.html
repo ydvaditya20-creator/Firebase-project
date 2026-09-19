@@ -128,6 +128,26 @@
         </form>
         <div id="speedLog" style="margin-top:10px; font-size:13px; color:#666;"></div>
     </div>
+<!-- तारीख फ़िल्टर बार और न्यू टैब बटन -->
+<div class="filter-container" style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px; padding: 10px; background: #f5f5f5; border-radius: 6px;">
+    <div>
+        <label style="font-weight: bold; font-size: 13px;">From Date: </label>
+        <input type="date" id="filterFromDate">
+    </div>
+    <div>
+        <label style="font-weight: bold; font-size: 13px;">To Date: </label>
+        <input type="date" id="filterToDate">
+    </div>
+    <!-- Filter बटन दबाते ही डेटाबेस से डेटा फेच होगा -->
+    <button onclick="applyDateFilterAndListen()" style="padding: 6px 12px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">
+        🔍 Filter Data
+    </button>
+    <button onclick="openTableInNewTab()" style="margin-left: auto; padding: 6px 12px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">
+        🔗 Open in New Tab
+    </button>
+</div>
+
+
 
     <!-- SEPARATE DASHBOARD LEDGER TABLES -->
     <div class="card" id="natwaCard">
@@ -168,7 +188,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getDatabase, ref, push, update, remove, query, limitToLast, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, push, orderByChild,startAt,endAt, update, remove, query, limitToLast, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDPcVvNNJZRVGF9SESynXtsZYwdJXB7J8U",
@@ -354,45 +374,144 @@ function parseVoucherNumber(vouchStr) {
     return 0;
 }
 
-function initRealtimeListeners() {
-    ['natwa', 'basahi'].forEach(branch => {
-        const branchRef = query(ref(db, `transactions/${branch}`), limitToLast(50));
-        const tbody = document.getElementById(`${branch}TableBody`);
+// एक्टिव Firebase लिसनर्स को ट्रैक करने के लिए ग्लोबल ऑब्जेक्ट
+// एक्टिव Firebase लिसनर्स को ट्रैक करने के लिए ग्लोबल ऑब्जेक्ट
+let activeListeners = {};
 
-        onChildAdded(branchRef, (snapshot) => {
-            const data = snapshot.val();
-            if(!data) return;
-            
-            // Extract and update the highest voucher sequence dynamically
-            const vNum = parseVoucherNumber(data.voucher_no);
-            if(branch === 'natwa' && vNum > maxNatwaVoucher) maxNatwaVoucher = vNum;
-            if(branch === 'basahi' && vNum > maxBasahiVoucher) maxBasahiVoucher = vNum;
-            
-            if(data.entries) data.entries.forEach(e => uniqueAccounts.add(e.account));
-            uniqueNarrations.add(data.narration);
+// 1. पेज लोड होने का लॉजिक
+document.addEventListener("DOMContentLoaded", () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    let fromParam = urlParams.get('from');
+    let toParam = urlParams.get('to');
 
-            const row = document.createElement("tr");
-            row.id = `row-${snapshot.key}`;
-            row.dataset.key = snapshot.key;
-            row.dataset.branch = branch;
-            renderRowStandard(row, data);
-            tbody.insertBefore(row, tbody.firstChild);
+    if (!fromParam || !toParam) {
+        // डिफ़ॉल्ट रूप से पिछले 2 दिन
+        const toDate = new Date(); 
+        const fromDate = new Date();
+        fromDate.setDate(toDate.getDate() - 1); 
+
+        fromParam = fromDate.toISOString().split('T')[0];
+        toParam = toDate.toISOString().split('T')[0];
+    }
+
+    document.getElementById("filterFromDate").value = fromParam;
+    document.getElementById("filterToDate").value = toParam;
+
+    // 🛠️ टॉगल स्विच का इवेंट लिसनर
+    const toggleInput = document.getElementById("tableToggle");
+    if (toggleInput) {
+        toggleInput.addEventListener("change", () => {
+            // जैसे ही टॉगल बदलेगा, यह टेबल को भी शो/हाइड करेगा और डेटा भी लोड करेगा
+            applyDateFilterAndListen();
         });
+    }
 
-        onChildChanged(branchRef, (snapshot) => {
-            const row = document.getElementById(`row-${snapshot.key}`);
-            if(row) renderRowStandard(row, snapshot.val());
-        });
+    // पहली बार डेटा लोड करें
+    applyDateFilterAndListen();
+});
 
-        onChildRemoved(branchRef, (snapshot) => {
-            const row = document.getElementById(`row-${snapshot.key}`);
-            if(row) row.remove();
-        });
+// 2. फ़िल्टर और टेबल शो/हाइड करने का मुख्य फंक्शन
+function applyDateFilterAndListen() {
+    const fromVal = document.getElementById("filterFromDate").value;
+    const toVal = document.getElementById("filterToDate").value;
+
+    if (!fromVal || !toVal) return;
+
+    const toggleInput = document.getElementById("tableToggle");
+    if (!toggleInput) return;
+    
+    // HTML के अनुसार: Checked = Basahi (🏢), Unchecked = Natwa (🏠)
+    const activeBranch = toggleInput.checked ? 'basahi' : 'natwa'; 
+    const inactiveBranch = toggleInput.checked ? 'natwa' : 'basahi';
+
+    // 🛠️ विजुअल फिक्स: एक्टिव टेबल को दिखाएं और इनएक्टिव टेबल को छुपाएं
+    // (नोट: यदि आपकी पूरी <table> की ID अलग है, तो आप 'TableBody' की जगह अपनी मुख्य Table ID का उपयोग भी कर सकते हैं)
+    const activeTable = document.getElementById(`${activeBranch}TableBody`);
+    const inactiveTable = document.getElementById(`${inactiveBranch}TableBody`);
+    
+    // अगर आप पूरी Table को हाइड करना चाहते हैं, तो सुनिश्चित करें कि आपकी टेबल या उसके पैरेंट कंटेनर पर ये IDs हों।
+    // यहाँ हम इनके बॉडी कंटेनर को मैनेज कर रहे हैं:
+    if (activeTable) {
+        // अगर आपने पूरे table एलिमेंट को हाइड करना है, तो .closest('table') का उपयोग करें
+        const mainTable = activeTable.closest('table');
+        if (mainTable) mainTable.style.display = ""; 
+    }
+    if (inactiveTable) {
+        const mainTable = inactiveTable.closest('table');
+        if (mainTable) mainTable.style.display = "none";
+    }
+
+    // A. इनएक्टिव ब्रांच का Firebase कनेक्शन तुरंत कट (Off) करें
+    if (activeListeners[inactiveBranch]) {
+        activeListeners[inactiveBranch](); 
+        delete activeListeners[inactiveBranch];
+    }
+
+    // B. एक्टिव टेबल का पुराना डेटा साफ करें ताकि नया फ्रेश डेटा लोड हो सके
+    if (activeTable) activeTable.innerHTML = ""; 
+
+    // C. एक्टिव ब्रांच का कोई पुराना लिसनर चल रहा है, तो उसे भी बंद करें
+    if (activeListeners[activeBranch]) {
+        activeListeners[activeBranch]();
+    }
+
+    console.log(`Switched to: ${activeBranch}. Fetching data from ${fromVal} to ${toVal}`);
+
+    // D. 🚀 Firebase से रेंज क्वेरी
+    const branchRef = query(
+        ref(db, `transactions/${activeBranch}`),
+        orderByChild('date'),
+        startAt(fromVal),
+        endAt(toVal)
+    );
+
+    const unsubscribe = onChildAdded(branchRef, (snapshot) => {
+        const data = snapshot.val();
+        if(!data) return;
+        
+        const vNum = parseVoucherNumber(data.voucher_no);
+        if(activeBranch === 'natwa' && vNum > maxNatwaVoucher) maxNatwaVoucher = vNum;
+        if(activeBranch === 'basahi' && vNum > maxBasahiVoucher) maxBasahiVoucher = vNum;
+        
+        if(data.entries) data.entries.forEach(e => uniqueAccounts.add(e.account));
+        uniqueNarrations.add(data.narration);
+
+        const row = document.createElement("tr");
+        row.id = `row-${snapshot.key}`;
+        row.dataset.key = snapshot.key;
+        row.dataset.branch = activeBranch;
+        
+        renderRowStandard(row, data);
+        if (activeTable) activeTable.insertBefore(row, activeTable.firstChild); 
     });
+
+    activeListeners[activeBranch] = unsubscribe;
 }
 
+// ग्लोबल स्कोप में फंक्शंस डालें
+window.applyDateFilterAndListen = applyDateFilterAndListen;
+window.openTableInNewTab = openTableInNewTab;
+
+// 3. ओपन इन न्यू टैब का सही फंक्शन
+function openTableInNewTab() {
+    const fromVal = document.getElementById("filterFromDate").value;
+    const toVal = document.getElementById("filterToDate").value;
+    const currentUrl = window.location.origin + window.location.pathname;
+    window.open(`${currentUrl}?from=${fromVal}&to=${toVal}`, '_blank');
+}
+
+// इन फंक्शंस को ग्लोबल (window) स्कोप में डालें ताकि HTML onclick इन्हें ढूंढ सके
+window.applyDateFilterAndListen = applyDateFilterAndListen;
+window.openTableInNewTab = openTableInNewTab;
+
+
+
+
+
+
+// 4. --- आपका अपडेटेड रेंडरर फंक्शन (DD-MM-YYYY फॉर्मेट के साथ) ---
 function renderRowStandard(row, data) {
-    // Store accurate reference dataset in local cache memory for graceful escapes/cancels
+    cacheRowData[row.id.replace("row-", "")] = data;
     cacheRowData[row.id] = data;
 
     let entriesHtml = `<div style="display:flex; flex-direction:column; gap:4px;">`;
@@ -410,21 +529,17 @@ function renderRowStandard(row, data) {
         docHtml = `
             <details style="margin-top: 6px; font-size: 12px; background: #fafafa; padding: 4px; border: 1px solid #ddd; border-radius: 4px;">
                 <summary style="cursor: pointer; font-weight: bold; color: #333;">📄 View Receipts (${data.billLinks.length})</summary>
-                <!-- 🛠️ यहाँ flex-direction: row और flex-wrap: wrap जोड़ा गया है ताकि एक लाइन में दिखें -->
                 <div class="doc-container" style="margin-top:5px; display:flex; flex-direction:row; flex-wrap:wrap; gap:8px;">
         `;
         
         data.billLinks.forEach((link, index) => {
-            // Check 1: अगर इमेज अभी लोकल कंप्रेस्ड Base64 फॉर्म में है
             if(link.indexOf("data:image") === 0) {
-                // 🛠️ flexbox लेआउट को सही रखने के लिए width को सीमित किया (e.g., max-width: 200px)
                 docHtml += `
                     <div class="iframe-box" style="flex: 1 1 180px; max-width: 200px; padding: 5px; background: #fff3cd; border: 1px solid #ffeba0; border-radius: 4px;">
                         <span class="badge-process" style="background:#ffc107; color:#000; padding:2px 5px; font-size:10px; font-weight:bold; border-radius:3px;">⚡ Uploading</span><br>
                         <img src="${link}" style="width:100%; max-height:120px; object-fit:contain; border-radius:4px; margin-top:5px;">
                     </div>`;
             } else {
-                // Check 2: अगर क्लाउड लिंक है
                 docHtml += `
                     <div class="iframe-box" style="flex: 1 1 180px; max-width: 200px; padding: 5px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;">
                         <span class="badge-drive" style="background:#28a745; color:#fff; padding:2px 5px; font-size:10px; font-weight:bold; border-radius:3px;">☁ Cloud Link</span><br>
@@ -436,34 +551,31 @@ function renderRowStandard(row, data) {
         docHtml += `</div></details>`;
     }
 
-    // 1. पहले चेक करें कि तारीख मौजूद है या नहीं और उसे DD-MM-YYYY में बदलें
-let displayDate = "";
-if (data.date && data.date.includes("-")) {
-    const parts = data.date.split("-"); // ["2026", "09", "19"]
-    displayDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // "19-09-2026"
-} else {
-    displayDate = data.date || ""; // अगर फॉर्मेट अलग हो या खाली हो
+    // 🛠️ तारीख को YYYY-MM-DD से बदलकर DD-MM-YYYY फॉर्मेट में स्क्रीन पर दिखाने का लॉजिक
+    let displayDate = "";
+    if (data.date && data.date.includes("-")) {
+        const parts = data.date.split("-");
+        displayDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // DD-MM-YYYY
+    } else {
+        displayDate = data.date || "";
+    }
+
+    row.innerHTML = `
+        <td><small><b>${data.txn_id}</b></small></td>
+        <td><b>${data.voucher_no}</b></td>
+        <td>${displayDate}</td>
+        <td>${entriesHtml}</td>
+        <td>
+            <span style="white-space: pre-line;">${safeNarrationText}</span>
+            ${docHtml}
+        </td>
+        <td>
+            <button class="btn-sm btn-edit" onclick="triggerInlineEdit('${row.id}')">Edit</button>
+            <button class="btn-sm btn-delete" onclick="triggerDelete('${row.id}')">Delete</button>
+            <button class="btn-sm btn-print" onclick="triggerPrint('${row.id}')">Print</button>
+        </td>
+    `;
 }
-
-// 2. अब अपने innerHTML में data.date की जगह {displayDate} का इस्तेमाल करें
-row.innerHTML = `
-    <td><small><b>${data.txn_id}</b></small></td>
-    <td><b>${data.voucher_no}</b></td>
-    <td>${displayDate}</td>
-    <td>${entriesHtml}</td>
-    <td>
-        <span style="white-space: pre-line;">${safeNarrationText}</span>
-        ${docHtml}
-    </td>
-    <td>
-        <button class="btn-sm btn-edit" onclick="triggerInlineEdit('${row.id}')">Edit</button>
-        <button class="btn-sm btn-delete" onclick="triggerDelete('${row.id}')">Delete</button>
-        <button class="btn-sm btn-print" onclick="triggerPrint('${row.id}')">Print</button>
-    </td>
-`;
-
-}
-
 
 
 
@@ -712,7 +824,7 @@ window.triggerPrint = function(rowId) {
         <body><div class="box"><h2 style="text-align:center;">JOURNAL VOUCHER RECEIPT</h2>
         <p><b>Txn ID:</b> ${data.txn_id} | <b>Voucher No:</b> ${data.voucher_no} | <b>Date:</b> ${data.date}</p><hr/>
         <table><thead><tr><th>Type</th><th>Account Ledger</th><th>Amount</th></tr></thead><tbody>
-        ${data.entries.map(e => `<tr><td><b>\${e.type}</b></td><td>\({e.account}</td><td>₹\){e.amount}</td></tr>`).join('')}
+        ${data.entries.map(e => `<tr><td><b>${e.type}</b></td><td>${e.account}</td><td>${e.amount}</td></tr>`).join('')}
         </tbody></table>
         <div style="background:#f5f5f5; padding:10px; border-left:4px solid #4f46e5; white-space: pre-line;"><b>Narration:</b><br>${data.narration}</div></div>
         </body></html>
