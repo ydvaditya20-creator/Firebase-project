@@ -436,21 +436,32 @@ function renderRowStandard(row, data) {
         docHtml += `</div></details>`;
     }
 
-    row.innerHTML = `
-        <td><small><b>${data.txn_id}</b></small></td>
-        <td><b>${data.voucher_no}</b></td>
-        <td>${data.date}</td>
-        <td>${entriesHtml}</td>
-        <td>
-            <span style="white-space: pre-line;">${safeNarrationText}</span>
-            ${docHtml}
-        </td>
-        <td>
-            <button class="btn-sm btn-edit" onclick="triggerInlineEdit('${row.id}')">Edit</button>
-            <button class="btn-sm btn-delete" onclick="triggerDelete('${row.id}')">Delete</button>
-            <button class="btn-sm btn-print" onclick="triggerPrint('${row.id}')">Print</button>
-        </td>
-    `;
+    // 1. पहले चेक करें कि तारीख मौजूद है या नहीं और उसे DD-MM-YYYY में बदलें
+let displayDate = "";
+if (data.date && data.date.includes("-")) {
+    const parts = data.date.split("-"); // ["2026", "09", "19"]
+    displayDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // "19-09-2026"
+} else {
+    displayDate = data.date || ""; // अगर फॉर्मेट अलग हो या खाली हो
+}
+
+// 2. अब अपने innerHTML में data.date की जगह {displayDate} का इस्तेमाल करें
+row.innerHTML = `
+    <td><small><b>${data.txn_id}</b></small></td>
+    <td><b>${data.voucher_no}</b></td>
+    <td>${displayDate}</td>
+    <td>${entriesHtml}</td>
+    <td>
+        <span style="white-space: pre-line;">${safeNarrationText}</span>
+        ${docHtml}
+    </td>
+    <td>
+        <button class="btn-sm btn-edit" onclick="triggerInlineEdit('${row.id}')">Edit</button>
+        <button class="btn-sm btn-delete" onclick="triggerDelete('${row.id}')">Delete</button>
+        <button class="btn-sm btn-print" onclick="triggerPrint('${row.id}')">Print</button>
+    </td>
+`;
+
 }
 
 
