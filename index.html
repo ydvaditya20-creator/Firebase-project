@@ -504,13 +504,7 @@ window.triggerInlineEdit = function(rowId) {
 };
 
 
-window.cancelInlineEdit = function(rowId) {
-    const row = document.getElementById(rowId);
-    const data = cacheRowData[rowId];
-    if(row && data) {
-        renderRowStandard(row, data);
-    }
-};
+
 
 window.saveInlineEdit = async function(rowId) {
     const row = document.getElementById(rowId);
@@ -595,6 +589,14 @@ window.saveInlineEdit = async function(rowId) {
     }
 };
 
+window.cancelInlineEdit = function(rowId) {
+    const row = document.getElementById(rowId);
+    const data = cacheRowData[rowId];
+    if(row && data) {
+        renderRowStandard(row, data);
+    }
+};
+    
 // इनलाइन एडिट के लिए सुरक्षित कंप्रेशन इंजन (इसे अपने स्क्रिप्ट में नीचे जोड़ दें)
 function convertInlineFileToBase64(file) {
     return new Promise(async (resolve, reject) => {
