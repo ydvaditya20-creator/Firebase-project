@@ -600,9 +600,10 @@ function convertInlineFileToBase64(file) {
     return new Promise(async (resolve, reject) => {
         if (file.type.startsWith('image/')) {
             const options = {
-                maxSizeMB: 0.2,          // फोटो को मात्र 200KB का बना देगा
-                maxWidthOrHeight: 600,   // मोबाइल व्यू के लिए बेस्ट साइज
-                useWebWorker: true       // बैकग्राउंड में काम करेगा ताकि RAM क्रैश न हो
+                maxSizeMB: 2.5,          // 🌟 Quality badhane ke liye size limit ko 2.5 MB kiya (ताकि डिटेल्स मिस न हों)
+                maxWidthOrHeight: 1600,  // 🌟 Dimensions ko 1600 kiya (ताकि टेक्स्ट और इमेज बिल्कुल साफ और HD दिखें)
+                useWebWorker: true,
+                initialQuality: 0.95     // 🌟 Compression quality ko 95% par set kiya (ताकि original quality barkarar rahe)
             };
             try {
                 const compressedBlob = await imageCompression(file, options);
@@ -619,6 +620,7 @@ function convertInlineFileToBase64(file) {
         }
     });
 }
+
 window.triggerDelete = async function(rowId) {
     if(confirm("Delete this Tally multi-split voucher?")) {
         const row = document.getElementById(rowId);
