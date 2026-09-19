@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>⚡ Advanced Tally-Style Dashboard</title>
-    <style>
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+
+<style>
+
         :root {
             --primary: #4f46e5;
             --success: #16a34a;
@@ -331,6 +334,7 @@ document.getElementById("txnForm").addEventListener("submit", async (e) => {
             date: document.getElementById("vouchDate").value,
             entries: items,
             narration: multiLineNarration,
+            billLinks: [],
             timestamp: Date.now()
         });
         document.getElementById("speedLog").innerText = `⚡ Voucher ${timing.vouchNo} Synced Successfully!`;
@@ -400,12 +404,48 @@ function renderRowStandard(row, data) {
     entriesHtml += `</div>`;
     const safeNarrationText = data.narration ? data.narration.replace(/\n/g, '<br>') : '';
 
+    // 🔥 डायनामिक ड्राइव और लोकल बेस64 को पहचानने वाला नया लॉजिक
+    let docHtml = `<span class="no-doc" style="font-size:11px; color:#999; display:block; margin-top:5px;">No bills attached</span>`;
+
+    if(data.billLinks && data.billLinks.length > 0) {
+        // मल्टीपल फाइल्स को सपोर्ट करने के लिए <details> टैग का इस्तेमाल किया
+        docHtml = `
+            <details style="margin-top: 6px; font-size: 12px; background: #fafafa; padding: 4px; border: 1px solid #ddd; border-radius: 4px;">
+                <summary style="cursor: pointer; font-weight: bold; color: #333;">📄 View Receipts (${data.billLinks.length})</summary>
+                <div class="doc-container" style="margin-top:5px; display:flex; flex-direction:column; gap:8px;">
+        `;
+        
+        data.billLinks.forEach((link, index) => {
+            // Check 1: अगर इमेज अभी लोकल कंप्रेस्ड Base64 फॉर्म में है (अपलोडिंग प्रोसेस चालू है)
+            if(link.indexOf("data:image") === 0) {
+                docHtml += `
+                    <div class="iframe-box" style="padding: 5px; background: #fff3cd; border: 1px solid #ffeba0; border-radius: 4px;">
+                        <span class="badge-process" style="background:#ffc107; color:#000; padding:2px 5px; font-size:10px; font-weight:bold; border-radius:3px;">⚡ Uploading to Drive (Local Cache)</span><br>
+                        <img src="${link}" style="width:100%; max-height:180px; object-fit:contain; border-radius:4px; margin-top:5px;">
+                    </div>`;
+            } else {
+                // Check 2: अगर बैकग्राउंड स्क्रिप्ट ने इसे परमानेंट Google Drive क्लाउड लिंक में बदल दिया है
+                docHtml += `
+                    <div class="iframe-box" style="padding: 5px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;">
+                        <span class="badge-drive" style="background:#28a745; color:#fff; padding:2px 5px; font-size:10px; font-weight:bold; border-radius:3px;">☁ Safe Cloud Link</span><br>
+                        <iframe src="${link}" width="100%" height="180" style="border:none; margin-top:5px; border-radius:4px; background:#fff;"></iframe>
+                    </div>`;
+            }
+        });
+        
+        docHtml += `</div></details>`;
+    }
+
     row.innerHTML = `
         <td><small><b>${data.txn_id}</b></small></td>
         <td><b>${data.voucher_no}</b></td>
         <td>${data.date}</td>
         <td>${entriesHtml}</td>
-        <td><span style="white-space: pre-line;">${safeNarrationText}</span></td>
+        <td>
+            <span style="white-space: pre-line;">${safeNarrationText}</span>
+            <!-- यहाँ आपका डायनामिक बिल/रसीद वाला बॉक्स रेंडर होगा -->
+            ${docHtml}
+        </td>
         <td>
             <button class="btn-sm btn-edit" onclick="triggerInlineEdit('${row.id}')">Edit</button>
             <button class="btn-sm btn-delete" onclick="triggerDelete('${row.id}')">Delete</button>
@@ -413,6 +453,9 @@ function renderRowStandard(row, data) {
         </td>
     `;
 }
+
+
+
 
 window.triggerInlineEdit = function(rowId) {
     const row = document.getElementById(rowId);
@@ -435,18 +478,31 @@ window.triggerInlineEdit = function(rowId) {
     });
     editRowsHtml += `</div>`;
 
+    // Narration के ठीक नीचे <details> टैग के साथ इमेज अपलोड जोड़ा गया है
     row.innerHTML = `
         <td><small><b>${data.txn_id}</b></small></td>
         <td><input type="text" value="${data.voucher_no}" id="edit-vouch-${key}" style="width:90px; font-weight:bold;"></td>
         <td><input type="date" value="${data.date}" id="edit-date-${key}" style="width:125px;"></td>
         <td>${editRowsHtml}</td>
-        <td><textarea id="edit-narr-${key}" style="width:100%; min-height:50px;">${data.narration}</textarea></td>
         <td>
-            <button class="btn-sm btn-save" onclick="saveInlineEdit('${rowId}')">Save</button>
+            <textarea id="edit-narr-${key}" style="width:100%; min-height:50px; margin-bottom:5px;">${data.narration}</textarea>
+            
+            <!-- <details> टैग का इस्तेमाल यहाँ किया गया है -->
+            <details style="margin-top: 5px; font-size: 12px; background: #f5f5f5; padding: 4px; border-radius: 4px; border: 1px solid #ddd;">
+                <summary style="cursor: pointer; font-weight: bold; color: #333;">📎 Attach Bill / Photo</summary>
+                <div style="margin-top: 5px; padding-top: 5px; border-top: 1px dashed #ccc;">
+                    <input type="file" id="edit-file-${key}" accept="image/*" style="font-size:11px; width:100%;">
+                    <div id="edit-status-${key}" style="font-size:11px; color:blue; margin-top:2px; font-weight:bold;"></div>
+                </div>
+            </details>
+        </td>
+        <td>
+            <button id="save-btn-${key}" class="btn-sm btn-save" onclick="saveInlineEdit('${rowId}')">Save</button>
             <button class="btn-sm btn-cancel" onclick="window.cancelInlineEdit('${rowId}')">Cancel</button>
         </td>
     `;
 };
+
 
 window.cancelInlineEdit = function(rowId) {
     const row = document.getElementById(rowId);
@@ -465,6 +521,12 @@ window.saveInlineEdit = async function(rowId) {
     const types = row.querySelectorAll(`.edit-type-${key}`);
     const accounts = row.querySelectorAll(`.edit-acc-${key}`);
     const amounts = row.querySelectorAll(`.edit-amt-${key}`);
+    
+    // नए इनपुट और बटन्स के रेफरेंस
+    const fileInput = document.getElementById(`edit-file-${key}`);
+    const statusDiv = document.getElementById(`edit-status-${key}`);
+    const saveBtn = document.getElementById(`save-btn-${key}`);
+    const files = fileInput ? fileInput.files : [];
 
     const updatedEntries = [];
     let totalDr = 0, totalCr = 0;
@@ -480,6 +542,31 @@ window.saveInlineEdit = async function(rowId) {
         return;
     }
 
+    // सेव बटन डिसेबल करें ताकि डबल सबमिशन न हो
+    saveBtn.disabled = true;
+    let localBase64Array = [];
+
+    // अगर यूजर ने नई फाइल/फोटो सेलेक्ट की है तो कंप्रेशन प्रोसेस शुरू करें
+    if (files && files.length > 0) {
+        statusDiv.innerHTML = "WhatsApp स्टाइल कंप्रेशन चल रहा है...";
+        try {
+            for (let i = 0; i < files.length; i++) {
+                // सुरक्षित कंप्रेशन फंक्शन को कॉल करें
+                const compressedData = await convertInlineFileToBase64(files[i]);
+                localBase64Array.push(compressedData);
+            }
+            statusDiv.innerHTML = "डेटाबेस में सेव हो रहा है...";
+        } catch (err) {
+            alert("फाइल प्रोसेस करने में एरर आया: " + err.message);
+            saveBtn.disabled = false;
+            return;
+        }
+    }
+
+    // पुराने बिल लिंक्स को नए कंप्रेस्ड लिंक्स के साथ जोड़ें
+    const existingLinks = oldData.billLinks || [];
+    let combinedLinks = existingLinks.concat(localBase64Array);
+
     try {
         await update(ref(db, `transactions/${branch}/${key}`), {
             txn_id: oldData.txn_id,
@@ -487,11 +574,51 @@ window.saveInlineEdit = async function(rowId) {
             date: document.getElementById(`edit-date-${key}`).value,
             entries: updatedEntries,
             narration: document.getElementById(`edit-narr-${key}`).value.trim(),
+            billLinks: combinedLinks, // नए बिल लिंक्स यहाँ जुड़ गए
             timestamp: oldData.timestamp || Date.now()
         });
-    } catch(err) { alert("Failed to update entry: " + err.message); }
+        
+        statusDiv.innerHTML = "<span style='color:green;'>✓ Saved Successfully!</span>";
+        setTimeout(() => {
+            // रेंडर करने का जो भी आपका स्टैंडर्ड तरीका हो (जैसे लिस्ट रिफ्रेश करना)
+            if(typeof renderRowStandard === "function") {
+                renderRowStandard(row, cacheRowData[rowId]); 
+            } else {
+                location.reload(); // अगर रिफ्रेश फ़ंक्शन न हो तो पेज लोड करें
+            }
+        }, 1000);
+
+    } catch(err) { 
+        alert("Failed to update entry: " + err.message); 
+        statusDiv.innerHTML = "<span style='color:red;'>सेव फेल हुआ!</span>";
+        saveBtn.disabled = false;
+    }
 };
 
+// इनलाइन एडिट के लिए सुरक्षित कंप्रेशन इंजन (इसे अपने स्क्रिप्ट में नीचे जोड़ दें)
+function convertInlineFileToBase64(file) {
+    return new Promise(async (resolve, reject) => {
+        if (file.type.startsWith('image/')) {
+            const options = {
+                maxSizeMB: 0.2,          // फोटो को मात्र 200KB का बना देगा
+                maxWidthOrHeight: 600,   // मोबाइल व्यू के लिए बेस्ट साइज
+                useWebWorker: true       // बैकग्राउंड में काम करेगा ताकि RAM क्रैश न हो
+            };
+            try {
+                const compressedBlob = await imageCompression(file, options);
+                const reader = new FileReader();
+                reader.readAsDataURL(compressedBlob);
+                reader.onloadend = () => resolve(reader.result);
+            } catch (err) {
+                reject(err);
+            }
+        } else {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onloadend = () => resolve(reader.result);
+        }
+    });
+}
 window.triggerDelete = async function(rowId) {
     if(confirm("Delete this Tally multi-split voucher?")) {
         const row = document.getElementById(rowId);
@@ -552,8 +679,3 @@ function setupNarrationSuggestions() {
 </script>
 </body>
 </html>
-
-
-
-
-
