@@ -763,35 +763,232 @@ window.saveInlineEdit = async function(rowId) {
             voucher_no: document.getElementById(`edit-vouch-${key}`).value.trim(),
             date: document.getElementById(`edit-date-${key}`).value,
             entries: updatedEntries,
-            narration: document.getElementById(`edit-narr-${key}`).value.trim(),
-            billLinks: combinedLinks, // अपडेटेड एरे (जिसमें से डिलीटेड हट चुके हैं) यहाँ सेव होगा
-            timestamp: oldData.timestamp || Date.now()
+window.saveInlineEdit = async function(rowId) {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+
+    const key = row.dataset.key;
+    const branch = row.dataset.branch;
+    const oldData = cacheRowData[rowId];
+
+    if (!oldData) {
+        console.error("Old row data not found:", rowId);
+        return;
+    }
+
+    const types = row.querySelectorAll(`.edit-type-${key}`);
+    const accounts = row.querySelectorAll(`.edit-acc-${key}`);
+    const amounts = row.querySelectorAll(`.edit-amt-${key}`);
+
+    const fileInput = document.getElementById(`edit-file-${key}`);
+    const statusDiv = document.getElementById(`edit-status-${key}`);
+    const saveBtn = document.getElementById(`save-btn-${key}`);
+
+    const files = fileInput ? fileInput.files : [];
+
+    // =====================================================
+    // IMPORTANT:
+    // सभी edit values को पहले सुरक्षित तरीके से पढ़ लें
+    // =====================================================
+
+    const voucherInput = document.getElementById(`edit-vouch-${key}`);
+    const dateInput = document.getElementById(`edit-date-${key}`);
+    const narrInput = document.getElementById(`edit-narr-${key}`);
+
+    const voucherNo = voucherInput ? voucherInput.value.trim() : (oldData.voucher_no || "");
+    const editDate = dateInput ? dateInput.value : (oldData.date || "");
+    const narration = narrInput ? narrInput.value.trim() : (oldData.narration || "");
+
+    // =====================================================
+    // Entries
+    // =====================================================
+
+    const updatedEntries = [];
+
+    let totalDr = 0;
+    let totalCr = 0;
+
+    for (let i = 0; i < types.length; i++) {
+
+        const amt = parseFloat(amounts[i]?.value) || 0;
+        const account = accounts[i]?.value.trim() || "";
+        const type = types[i]?.value || "Dr";
+
+        if (type === "Dr") {
+            totalDr += amt;
+        } else {
+            totalCr += amt;
+        }
+
+        updatedEntries.push({
+            type: type,
+            account: account,
+            amount: amt.toFixed(2)
         });
-        
-        statusDiv.innerHTML = "<span style='color:green;'>✓ Saved Successfully!</span>";
-        
-        // ऑपरेशन सफल होने पर ग्लोबल कैश साफ करें
+    }
+
+    // =====================================================
+    // Debit / Credit validation
+    // =====================================================
+
+    if (totalDr.toFixed(2) !== totalCr.toFixed(2)) {
+        alert(
+            "Mismatch Error:\n\n" +
+            "Total Debit: " + totalDr.toFixed(2) +
+            "\nTotal Credit: " + totalCr.toFixed(2)
+        );
+        return;
+    }
+
+    // =====================================================
+    // Save button protection
+    // =====================================================
+
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Saving...";
+    }
+
+    let localBase64Array = [];
+
+    // =====================================================
+    // New files
+    // =====================================================
+
+    if (files && files.length > 0) {
+
+        if (statusDiv) {
+            statusDiv.innerHTML =
+                "WhatsApp स्टाइल कंप्रेशन चल रहा है...";
+        }
+
+        try {
+
+            for (let i = 0; i < files.length; i++) {
+
+                const compressedData =
+                    await convertInlineFileToBase64(files[i]);
+
+                localBase64Array.push(compressedData);
+            }
+
+            if (statusDiv) {
+                statusDiv.innerHTML =
+                    "डेटाबेस में सेव हो रहा है...";
+            }
+
+        } catch (err) {
+
+            console.error("File compression error:", err);
+
+            alert(
+                "फाइल प्रोसेस करने में एरर आया: " +
+                err.message
+            );
+
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = "Save";
+            }
+
+            return;
+        }
+    }
+
+    // =====================================================
+    // Existing + New bill links
+    // =====================================================
+
+    const remainingLinks =
+        window.editBillLinksCache[key] || [];
+
+    const combinedLinks =
+        remainingLinks.concat(localBase64Array);
+
+    // =====================================================
+    // Firebase Update
+    // =====================================================
+
+    try {
+
+        await update(
+            ref(db, `transactions/${branch}/${key}`),
+            {
+                txn_id: oldData.txn_id,
+
+                // अब DOM से दोबारा voucher no नहीं पढ़ रहे
+                voucher_no: voucherNo,
+
+                date: editDate,
+
+                entries: updatedEntries,
+
+                narration: narration,
+
+                billLinks: combinedLinks,
+
+                timestamp:
+                    oldData.timestamp || Date.now()
+            }
+        );
+
+        // =================================================
+        // Success
+        // =================================================
+
+        if (statusDiv) {
+            statusDiv.innerHTML =
+                "<span style='color:green;'>✓ Saved Successfully!</span>";
+        }
+
+        // Cache साफ करें
         delete window.editBillLinksCache[key];
 
-        setTimeout(() => {
-            if(typeof renderRowStandard === "function") {
-                // कैश डेटा को भी लोकल लेवल पर अपडेट कर दें ताकि व्यू सही दिखे
-                cacheRowData[rowId].billLinks = combinedLinks;
-                cacheRowData[rowId].voucher_no = document.getElementById(`edit-vouch-${key}`).value.trim();
-                cacheRowData[rowId].date = document.getElementById(`edit-date-${key}`).value;
-                cacheRowData[rowId].entries = updatedEntries;
-                cacheRowData[rowId].narration = document.getElementById(`edit-narr-${key}`).value.trim();
-                
-                renderRowStandard(row, cacheRowData[rowId]); 
-            } else {
-                location.reload();
-            }
-        }, 1000);
+        // =================================================
+        // Local cache update
+        // =================================================
 
-    } catch(err) { 
-        alert("Failed to update entry: " + err.message); 
-        statusDiv.innerHTML = "<span style='color:red;'>सेव फेल हुआ!</span>";
-        saveBtn.disabled = false;
+        cacheRowData[rowId].billLinks = combinedLinks;
+        cacheRowData[rowId].voucher_no = voucherNo;
+        cacheRowData[rowId].date = editDate;
+        cacheRowData[rowId].entries = updatedEntries;
+        cacheRowData[rowId].narration = narration;
+
+        setTimeout(() => {
+
+            if (typeof renderRowStandard === "function") {
+
+                renderRowStandard(
+                    row,
+                    cacheRowData[rowId]
+                );
+
+            } else {
+
+                location.reload();
+
+            }
+
+        }, 800);
+
+    } catch (err) {
+
+        console.error("Firebase update error:", err);
+
+        alert(
+            "Failed to update entry:\n" +
+            err.message
+        );
+
+        if (statusDiv) {
+            statusDiv.innerHTML =
+                "<span style='color:red;'>सेव फेल हुआ!</span>";
+        }
+
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Save";
+        }
     }
 };
 
