@@ -12,7 +12,6 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/read-action@v4
       # Note: uses: actions/checkout@v4 ko update kiya hai properly format me
       uses: actions/checkout@v4
 
