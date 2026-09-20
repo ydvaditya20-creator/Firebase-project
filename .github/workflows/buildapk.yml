@@ -1,4 +1,3 @@
-   
 name: Build APK
 
 on:
@@ -10,7 +9,6 @@ jobs:
 
     steps:
     - name: Checkout
-      # Note: uses: actions/checkout@v4 ko update kiya hai properly format me
       uses: actions/checkout@v4
 
     - name: Setup Node
@@ -35,8 +33,8 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        npm init -y
-        npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/camera
+        npm install
+        npm install @capacitor/camera@^7.0.0
 
     - name: Add Android Platform
       run: npx cap add android
