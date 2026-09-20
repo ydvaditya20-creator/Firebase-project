@@ -465,28 +465,58 @@ function applyDateFilterAndListen() {
         endAt(toVal)
     );
 
-    const unsubscribe = onChildAdded(branchRef, (snapshot) => {
-        const data = snapshot.val();
-        if(!data) return;
-        
-        const vNum = parseVoucherNumber(data.voucher_no);
-        if(activeBranch === 'natwa' && vNum > maxNatwaVoucher) maxNatwaVoucher = vNum;
-        if(activeBranch === 'basahi' && vNum > maxBasahiVoucher) maxBasahiVoucher = vNum;
-        
-        if(data.entries) data.entries.forEach(e => uniqueAccounts.add(e.account));
-        uniqueNarrations.add(data.narration);
+    const unsubscribeAdded = onChildAdded(branchRef, (snapshot) => {
+    const data = snapshot.val();
+    if(!data) return;
 
-        const row = document.createElement("tr");
-        row.id = `row-${snapshot.key}`;
-        row.dataset.key = snapshot.key;
-        row.dataset.branch = activeBranch;
-        
+    const vNum = parseVoucherNumber(data.voucher_no);
+    if(activeBranch === 'natwa' && vNum > maxNatwaVoucher) maxNatwaVoucher = vNum;
+    if(activeBranch === 'basahi' && vNum > maxBasahiVoucher) maxBasahiVoucher = vNum;
+
+    if(data.entries) data.entries.forEach(e => uniqueAccounts.add(e.account));
+    uniqueNarrations.add(data.narration);
+
+    const row = document.createElement("tr");
+    row.id = `row-${snapshot.key}`;
+    row.dataset.key = snapshot.key;
+    row.dataset.branch = activeBranch;
+
+    renderRowStandard(row, data);
+
+    if(activeTable) {
+        activeTable.insertBefore(row, activeTable.firstChild);
+    }
+});
+
+const unsubscribeChanged = onChildChanged(branchRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    const row = document.getElementById(`row-${snapshot.key}`);
+
+    if (row) {
         renderRowStandard(row, data);
-        if (activeTable) activeTable.insertBefore(row, activeTable.firstChild); 
-    });
+    }
+});
 
-    activeListeners[activeBranch] = unsubscribe;
-}
+// 🔥 DELETE होने पर table से row तुरंत हटेगी
+const unsubscribeRemoved = onChildRemoved(branchRef, (snapshot) => {
+    const row = document.getElementById(`row-${snapshot.key}`);
+
+    if(row) {
+        row.remove();
+    }
+
+    // local cache भी हटाएँ
+    delete cacheRowData[`row-${snapshot.key}`];
+    delete cacheRowData[snapshot.key];
+});
+
+activeListeners[activeBranch] = () => {
+    unsubscribeAdded();
+    unsubscribeChanged();
+    unsubscribeRemoved();
+};}
 
 // ग्लोबल स्कोप में फंक्शंस डालें
 window.applyDateFilterAndListen = applyDateFilterAndListen;
