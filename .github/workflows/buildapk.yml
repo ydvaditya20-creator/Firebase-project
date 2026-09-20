@@ -1,31 +1,51 @@
+    
+
+    
 name: Build APK
 
 on:
- workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
- build:
-  runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest
 
-  
-  steps:
-  - name: Checkout
-    uses: actions/checkout@v4
+    steps:
+    - name: Checkout
+      uses: actions/read-action@v4
+      # Note: uses: actions/checkout@v4 ko update kiya hai properly format me
+      uses: actions/checkout@v4
 
-  - name: Setup Node
-    uses: actions/setup-node@v4
-    with:
-      node-version: 20
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
 
-  
-  - name: Setup Java
-    uses: actions/setup-java@v4
-    with:
-      distribution: temurin
-      java-version: '21'
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
 
-  - name: Add Network State Permission safely
-    run: |
+    - name: Create Web Folder
+      run: |
+        mkdir -p www
+        cp index.html www/
+
+    - name: Create Capacitor Config
+      run: |
+        echo '{"appId":"com.example.myttap","appName":"MyttAp","webDir":"www"}' > capacitor.config.json
+
+    - name: Install Dependencies
+      run: |
+        npm init -y
+        npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/camera
+
+    - name: Add Android Platform
+      run: npx cap add android
+
+    - name: Add Network State Permission safely
+      run: |
         node -e "
         const fs = require('fs');
         const path = 'android/app/src/main/AndroidManifest.xml';
@@ -41,67 +61,44 @@ jobs:
         }
         "
 
-  - name: Install Dependencies
-    run: npm install
-
-  
-
-  - name: Create Web Folder
-    run: |
-      mkdir -p www
-      cp index.html www/
-
-  - name: Create Capacitor Config
-    run: |
-      echo '{"appId":"com.example.myttap","appName":"MyttAp","webDir":"www"}' > capacitor.config.json
-
-  - name: Add Android
-    run: npx cap add android
-
-  - name: Sync Android
-    run: npx cap sync android
-    
-  - name: Show Android Files
-    run: |
-         find android -name MainActivity.*
-  - name: Check File Content
-    run: cat android/app/src/main/java/com/example/myttap/MainActivity.java
-
-  - name: Inject Camera Permissions into Android Manifest
-    run: |
+    - name: Inject Camera Permissions into Android Manifest
+      run: |
         MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
         PERMISSIONS="<uses-permission android:name=\"android.permission.CAMERA\" />\n    <uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\" />\n    <uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\" />"
-        # Manifest file me application tag ke theek pehle permissions inject karne ke liye
         sed -i "s|<application|$PERMISSIONS\n    <application|g" $MANIFEST_PATH
-  
-  - name: List All Generated Files & Folders
-    run: |
-          echo "=== 1. Root Directory Structure ==="
-          ls -la
-          
-          echo "=== 2. Inside Android Folder (Main Native Structure) ==="
-          ls -la android/
-          
-          echo "=== 3. Inside Android App Folder (Where code and assets live) ==="
-          ls -la android/app/
-          
-          echo "=== 4. Finding HTML/JS assets inside Android Project ==="
-          find android/app/src/main/assets/ -type f || echo "Assets not compiled here yet"
-          
-          
 
-  - name: Build APK
-    run: |
-      cd android
-      chmod +x gradlew
-      ./gradlew assembleDebug
+    - name: Sync Android
+      run: npx cap sync android
+        
+    - name: Show Android Files
+      run: |
+        find android -name MainActivity.*
 
-  - name: Upload APK
-    uses: actions/upload-artifact@v4
-    with:
-      name: app-debug
-      path: android/app/build/outputs/apk/debug/app-debug.apk: npx cap add android
+    - name: Check File Content
+      run: cat android/app/src/main/java/com/example/myttap/MainActivity.java
+      
+    - name: List All Generated Files & Folders
+      run: |
+        echo "=== 1. Root Directory Structure ==="
+        ls -la
+        
+        echo "=== 2. Inside Android Folder (Main Native Structure) ==="
+        ls -la android/
+        
+        echo "=== 3. Inside Android App Folder (Where code and assets live) ==="
+        ls -la android/app/
+        
+        echo "=== 4. Finding HTML/JS assets inside Android Project ==="
+        find android/app/src/main/assets/ -type f || echo "Assets not compiled here yet"
 
-    
+    - name: Build APK
+      run: |
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
-    
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug
+        path: android/app/build/outputs/apk/debug/app-debug.apk
