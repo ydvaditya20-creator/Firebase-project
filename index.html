@@ -250,8 +250,9 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
         document.getElementById("authStatus").innerText = "🔒 Secure Tally Multi-Line Engine Active";
         if(submitBtn) submitBtn.disabled = false;
+       setupNarrationSuggestions();
         initRealtimeListeners();
-        setupNarrationSuggestions();
+        
     }
 });
 
