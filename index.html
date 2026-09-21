@@ -238,7 +238,7 @@ signInAnonymously(auth);
 
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        document.getElementById("authStatus").innerText = "🔒 Secure Tally Multi-Line Engine Active";
+        document.getElementById("authStatus").innerText = "🔒 Secure Multi-Line Engine Active";
         if(submitBtn) submitBtn.disabled = false;
         setupNarrationSuggestions();
         initRealtimeListeners();
