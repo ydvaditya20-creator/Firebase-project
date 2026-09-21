@@ -707,64 +707,6 @@ window.removeImageFromEdit = function(key, index) {
 
 window.saveInlineEdit = async function(rowId) {
     const row = document.getElementById(rowId);
-    const key = row.dataset.key;
-    const branch = row.dataset.branch;
-    const oldData = cacheRowData[rowId];
-
-    const types = row.querySelectorAll(`.edit-type-${key}`);
-    const accounts = row.querySelectorAll(`.edit-acc-${key}`);
-    const amounts = row.querySelectorAll(`.edit-amt-${key}`);
-    
-    const fileInput = document.getElementById(`edit-file-${key}`);
-    const statusDiv = document.getElementById(`edit-status-${key}`);
-    const saveBtn = document.getElementById(`save-btn-${key}`);
-    const files = fileInput ? fileInput.files : [];
-
-    const updatedEntries = [];
-    let totalDr = 0, totalCr = 0;
-
-    for(let i=0; i < types.length; i++) {
-        const amt = parseFloat(amounts[i].value) || 0;
-        if(types[i].value === "Dr") totalDr += amt; else totalCr += amt;
-        updatedEntries.push({ type: types[i].value, account: accounts[i].value.trim(), amount: amt.toFixed(2) });
-    }
-
-    if(totalDr.toFixed(2) !== totalCr.toFixed(2)) {
-        alert("Mismatch Error: Total Debit and Credit must match perfectly!");
-        return;
-    }
-
-    saveBtn.disabled = true;
-    let localBase64Array = [];
-
-    // अगर यूजर ने नई फाइल/फोटो सेलेक्ट की है तो कंप्रेशन प्रोसेस शुरू करें
-    if (files && files.length > 0) {
-        statusDiv.innerHTML = "WhatsApp स्टाइल कंप्रेशन चल रहा है...";
-        try {
-            for (let i = 0; i < files.length; i++) {
-                const compressedData = await convertInlineFileToBase64(files[i]);
-                localBase64Array.push(compressedData);
-            }
-            statusDiv.innerHTML = "डेटाबेस में सेव हो रहा है...";
-        } catch (err) {
-            alert("फाइल प्रोसेस करने में एरर आया: " + err.message);
-            saveBtn.disabled = false;
-            return;
-        }
-    }
-
-    // 🔥 मोडिफाइड लॉजिक: डिलीट करने के बाद बचे हुए लिंक्स को ही नए अपलोडेड लिंक्स के साथ कंबाइन करें
-    const remainingLinks = window.editBillLinksCache[key] || [];
-    let combinedLinks = remainingLinks.concat(localBase64Array);
-
-    try {
-        await update(ref(db, `transactions/${branch}/${key}`), {
-            txn_id: oldData.txn_id,
-            voucher_no: document.getElementById(`edit-vouch-${key}`).value.trim(),
-            date: document.getElementById(`edit-date-${key}`).value,
-            entries: updatedEntries,
-window.saveInlineEdit = async function(rowId) {
-    const row = document.getElementById(rowId);
     if (!row) return;
 
     const key = row.dataset.key;
