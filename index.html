@@ -250,7 +250,7 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
         document.getElementById("authStatus").innerText = "🔒 Secure Tally Multi-Line Engine Active";
         if(submitBtn) submitBtn.disabled = false;
-       setupNarrationSuggestions();
+        setupNarrationSuggestions();
         initRealtimeListeners();
         
     }
@@ -466,52 +466,64 @@ function applyDateFilterAndListen() {
         endAt(toVal)
     );
 
-    const unsubscribeAdded = onChildAdded(branchRef, (snapshot) => {
-    const data = snapshot.val();
-    if(!data) return;
+        const unsubscribeAdded = onChildAdded(branchRef, (snapshot) => {
+        const data = snapshot.val();
+        if(!data) return;
 
-    const vNum = parseVoucherNumber(data.voucher_no);
-    if(activeBranch === 'natwa' && vNum > maxNatwaVoucher) maxNatwaVoucher = vNum;
-    if(activeBranch === 'basahi' && vNum > maxBasahiVoucher) maxBasahiVoucher = vNum;
+        const vNum = parseVoucherNumber(data.voucher_no);
+        if(activeBranch === 'natwa' && vNum > maxNatwaVoucher) maxNatwaVoucher = vNum;
+        if(activeBranch === 'basahi' && vNum > maxBasahiVoucher) maxBasahiVoucher = vNum;
 
-    if(data.entries) data.entries.forEach(e => uniqueAccounts.add(e.account));
-    uniqueNarrations.add(data.narration);
+        if(data.entries) data.entries.forEach(e => uniqueAccounts.add(e.account));
+        uniqueNarrations.add(data.narration);
 
-    const row = document.createElement("tr");
-    row.id = `row-${snapshot.key}`;
-    row.dataset.key = snapshot.key;
-    row.dataset.branch = activeBranch;
+        // 1. मुख्य डेटा रो (Transaction Row)
+        const row = document.createElement("tr");
+        row.id = `row-${snapshot.key}`;
+        row.dataset.key = snapshot.key;
+        row.dataset.branch = activeBranch;
 
-    renderRowStandard(row, data);
+        // 2. ठीक नीचे वाली इमेज रो (Image Row)
+        const imgRow = document.createElement("tr");
+        imgRow.id = `row-img-${snapshot.key}`;
+        imgRow.className = "image-row";
 
-    if(activeTable) {
-        activeTable.insertBefore(row, activeTable.firstChild);
-    }
-});
+        // दोनों रो में डेटा रेंडर करें
+        renderRowStandard(row, imgRow, data);
 
-const unsubscribeChanged = onChildChanged(branchRef, (snapshot) => {
-    const data = snapshot.val();
-    if (!data) return;
+        if(activeTable) {
+            // चूँकि हम insertBefore कर रहे हैं और हम चाहते हैं कि डेटा रो ऊपर रहे और इमेज रो उसके ठीक नीचे,
+            // इसलिए पहले इमेज रो इन्सर्ट होगी, फिर उसके ऊपर मुख्य डेटा रो इन्सर्ट होगी।
+            activeTable.insertBefore(imgRow, activeTable.firstChild);
+            activeTable.insertBefore(row, activeTable.firstChild);
+        }
+    });
 
-    const row = document.getElementById(`row-${snapshot.key}`);
+    const unsubscribeChanged = onChildChanged(branchRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
 
-    if (row) {
-        renderRowStandard(row, data);
-    }
-});
+        const row = document.getElementById(`row-${snapshot.key}`);
+        const imgRow = document.getElementById(`row-img-${snapshot.key}`);
 
-// 🔥 DELETE होने पर table से row तुरंत हटेगी
-const unsubscribeRemoved = onChildRemoved(branchRef, (snapshot) => {
-    const row = document.getElementById(`row-${snapshot.key}`);
+        if (row && imgRow) {
+            renderRowStandard(row, imgRow, data);
+        }
+    });
 
-    if(row) {
-        row.remove();
-    }
+    // 🔥 DELETE होने पर table से दोनों rows तुरंत हटेंगी
+    const unsubscribeRemoved = onChildRemoved(branchRef, (snapshot) => {
+        const row = document.getElementById(`row-${snapshot.key}`);
+        const imgRow = document.getElementById(`row-img-${snapshot.key}`);
 
-    // local cache भी हटाएँ
-    delete cacheRowData[`row-${snapshot.key}`];
-    delete cacheRowData[snapshot.key];
-});
+        if(row) row.remove();
+        if(imgRow) imgRow.remove();
+
+        // local cache भी हटाएँ
+        delete cacheRowData[`row-${snapshot.key}`];
+        delete cacheRowData[snapshot.key];
+    });
+
 
 activeListeners[activeBranch] = () => {
     unsubscribeAdded();
@@ -540,8 +552,8 @@ window.openTableInNewTab = openTableInNewTab;
 
 
 
-// 4. --- आपका अपडेटेड रेंडरर फंक्शन (DD-MM-YYYY फॉर्मेट के साथ) ---
-function renderRowStandard(row, data) {
+// 4. --- आपका अपडेटेड रेंडरर फंक्शन (DD-MM-YYYY फॉर्मेट के साथ) ---// 4. --- आपका अपडेटेड रेंडरर फंक्शन (डेटा रो + इमेज रो आर्किटेक्चर) ---
+function renderRowStandard(row, imgRow, data) {
     cacheRowData[row.id.replace("row-", "")] = data;
     cacheRowData[row.id] = data;
 
@@ -554,13 +566,12 @@ function renderRowStandard(row, data) {
     entriesHtml += `</div>`;
     const safeNarrationText = data.narration ? data.narration.replace(/\n/g, '<br>') : '';
 
-    let docHtml = `<span class="no-doc" style="font-size:11px; color:#999; display:block; margin-top:5px;">No bills attached</span>`;
+    let docHtml = `<span class="no-doc" style="font-size:11px; color:#999;">No bills attached</span>`;
 
     if(data.billLinks && data.billLinks.length > 0) {
         docHtml = `
-            <details style="margin-top: 6px; font-size: 12px; background: #fafafa; padding: 4px; border: 1px solid #ddd; border-radius: 4px;">
-                <summary style="cursor: pointer; font-weight: bold; color: #333;">📄 View Receipts (${data.billLinks.length})</summary>
-                <div class="doc-container" style="margin-top:5px; display:flex; flex-direction:row; flex-wrap:wrap; gap:8px;">
+            <div class="doc-container" style="display:flex; flex-direction:row; flex-wrap:wrap; gap:8px; align-items: center;">
+                <span style="font-weight: bold; font-size: 12px; color: #333;">📄 Receipts (${data.billLinks.length}): </span>
         `;
         
         data.billLinks.forEach((link, index) => {
@@ -579,33 +590,47 @@ function renderRowStandard(row, data) {
             }
         });
         
-        docHtml += `</div></details>`;
+        docHtml += `</div>`;
     }
 
-    // 🛠️ तारीख को YYYY-MM-DD से बदलकर DD-MM-YYYY फॉर्मेट में स्क्रीन पर दिखाने का लॉजिक
+    // तारीख को YYYY-MM-DD से बदलकर DD-MM-YYYY फॉर्मेट में स्क्रीन पर दिखाने का लॉजिक
     let displayDate = "";
     if (data.date && data.date.includes("-")) {
         const parts = data.date.split("-");
-        displayDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // DD-MM-YYYY
+        displayDate = `${parts[2]}-${parts[1]}-${parts[0]}`; 
     } else {
         displayDate = data.date || "";
     }
 
+    // 1. मुख्य रो में केवल ट्रांजैक्शन की डिटेल्स रहेंगी (रिसीप्ट हटा दी गई है)
     row.innerHTML = `
         <td><small><b>${data.txn_id}</b></small></td>
         <td><b>${data.voucher_no}</b></td>
         <td>${displayDate}</td>
         <td>${entriesHtml}</td>
-        <td>
-            <span style="white-space: pre-line;">${safeNarrationText}</span>
-            ${docHtml}
-        </td>
+        <td><span style="white-space: pre-line;">${safeNarrationText}</span></td>
         <td>
             <button class="btn-sm btn-edit" onclick="triggerInlineEdit('${row.id}')">Edit</button>
             <button class="btn-sm btn-delete" onclick="triggerDelete('${row.id}')">Delete</button>
             <button class="btn-sm btn-print" onclick="triggerPrint('${row.id}')">Print</button>
         </td>
     `;
+
+    // 2. जस्ट नीचे वाली रो में इमेज/रिसीप्ट पूरे 6 कॉलम्स (colspan="6") को घेर कर दिखेगी
+        // 2. जस्ट नीचे वाली रो में इमेज/रिसीप्ट <details> टैग के अंदर पैक होकर दिखेगी
+    imgRow.innerHTML = `
+        <td colspan="6" style="background-color: #fdfdfd; padding: 6px 12px; border-bottom: 2px solid #ddd;">
+            <details style="font-size: 12px; background: #fafafa; padding: 6px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                <summary style="cursor: pointer; font-weight: bold; color: #333; outline: none; user-select: none;">
+                    📄 View Attachments (${data.billLinks ? data.billLinks.length : 0})
+                </summary>
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #ddd;">
+                    ${docHtml}
+                </div>
+            </details>
+        </td>
+    `;
+
 }
 
 
@@ -802,7 +827,7 @@ window.saveInlineEdit = async function(rowId) {
 
         if (statusDiv) {
             statusDiv.innerHTML =
-                "WhatsApp स्टाइल कंप्रेशन चल रहा है...";
+                " कंप्रेशन चल रहा है...";
         }
 
         try {
@@ -897,21 +922,26 @@ window.saveInlineEdit = async function(rowId) {
         cacheRowData[rowId].entries = updatedEntries;
         cacheRowData[rowId].narration = narration;
 
-        setTimeout(() => {
-
+                setTimeout(() => {
             if (typeof renderRowStandard === "function") {
+                // 1. rowId से मुख्य डेटा रो ढूँढें (जैसे: row-12345)
+                const row = document.getElementById(rowId);
+                
+                // 2. उसी की इमेज रो भी ढूँढें (जैसे: row-img-12345)
+                // rowId में पहले से "row-" शामिल होता है, इसलिए replace करके key निकाल रहे हैं
+                const pureKey = rowId.replace("row-", "");
+                const imgRow = document.getElementById(`row-img-${pureKey}`);
 
-                renderRowStandard(
-                    row,
-                    cacheRowData[rowId]
-                );
-
+                if (row && imgRow) {
+                    // 3. अब तीनों सही आर्गुमेंट्स पास करें: row, imgRow, और updated data
+                    renderRowStandard(row, imgRow, cacheRowData[rowId]);
+                } else {
+                    // बैकअप: अगर DOM में रो नहीं मिली तो पेज रीलोड करें
+                    location.reload();
+                }
             } else {
-
                 location.reload();
-
             }
-
         }, 800);
 
     } catch (err) {
