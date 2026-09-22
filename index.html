@@ -3,68 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚡ Advanced Dashboard</title>
+    <title>⚡ Advanced Tally-Style Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
 
 <style>
 
-        :root{--primary:#4f46e5;--success:#16a34a;--danger:#dc2626;--bg:#f8fafc;--card:#ffffff;--text:#1e293b}
-body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);margin:0;padding:12px}
-.container{max-width:1300px;margin:0 auto}
-.status{background:#dcfce7;color:#15803d;padding:10px;border-radius:6px;margin-bottom:15px;font-weight:600;text-align:center;font-size:14px}
-.card{background:var(--card);border-radius:12px;padding:15px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);margin-bottom:15px}
-.flex-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;gap:10px}
-.switch-container{display:flex;align-items:center;gap:10px;font-weight:bold;font-size:14px}
-.switch{position:relative;display:inline-block;width:50px;height:28px}
-.switch input{opacity:0;width:0;height:0}
-.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#ccc;transition:.4s;border-radius:28px}
-.slider:before{position:absolute;content:"";height:20px;width:20px;left:4px;bottom:4px;background-color:#fff;transition:.4s;border-radius:50%}
-input:checked+.slider{background-color:var(--primary)}
-input:checked+.slider:before{transform:translateX(22px)}
-.voucher-header{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:15px;background:#f1f5f9;padding:12px;border-radius:8px}
-.entry-row{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:15px;padding-bottom:15px;border-bottom:1px dashed #cbd5e1;position:relative}
-label{font-size:12px;font-weight:600;margin-bottom:4px}
-.form-group{display:flex;flex-direction:column;position:relative}
-input,select,textarea{padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;width:100%;box-sizing:border-box}
-textarea{resize:vertical;min-height:50px}
-button{background:var(--primary);color:#fff;border:none;padding:10px 16px;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px}
-button:disabled{opacity:.5}
-.btn-add-row{background:#0284c7;margin-bottom:12px;padding:6px 12px;font-size:13px}
-.btn-remove-row{background:var(--danger);padding:8px;font-size:14px;height:38px}
-.table-responsive{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:15px}
-table{width:100%;border-collapse:collapse;text-align:left}
-th,td{padding:10px;border-bottom:1px solid #e2e8f0;font-size:13px;vertical-align:top;white-space:nowrap}
-th{background:#f1f5f9}
-.btn-sm{padding:5px 8px;font-size:12px;margin-right:4px;border:none;border-radius:4px;color:#fff;cursor:pointer;display:inline-block;margin-bottom:4px}
-.btn-edit{background:#eab308}
-.btn-delete{background:var(--danger)}
-.btn-print{background:#64748b}
-.btn-save{background:var(--success)}
-.btn-cancel{background:#94a3b8}
-.suggestions{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #cbd5e1;border-radius:6px;max-height:150px;overflow-y:auto;z-index:99;box-shadow:0 4px 6px rgba(0,0,0,0.1)}
-.suggestion-item{padding:8px 12px;cursor:pointer;color:#334155;font-size:13px}
-.suggestion-item:hover{background:#f1f5f9}
-.hidden{display:none}
-.table-title{font-size:16px;font-weight:bold;margin-top:0;color:var(--primary)}
-.badge{padding:3px 6px;border-radius:4px;font-size:10px;font-weight:bold;text-transform:uppercase}
-.badge-dr{background:#dbeafe;color:#1e40af}
-.badge-cr{background:#fee2e2;color:#991b1b}
-.totals-box{text-align:right;margin-top:12px;font-weight:bold;font-size:14px}
-.error-msg{color:var(--danger);font-size:12px;font-weight:bold;margin-top:5px}
-@media(min-width:768px){
-  body{padding:20px}
-  .card{padding:20px}
-  .voucher-header{grid-template-columns:200px 200px 1fr}
-  .entry-row{grid-template-columns:120px 1fr 200px 50px;border-bottom:none;margin-bottom:10px;padding-bottom:0}
-  .totals-box{font-size:15px;padding-right:60px}
-}
+        :root {
+            --primary: #4f46e5;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1300px; margin: 0 auto; }
+        .status { background: #dcfce7; color: #15803d; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-weight: 600; text-align: center; }
+        .card { background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .flex-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        
+        /* Toggle Switch */
+        .switch-container { display: flex; align-items: center; gap: 10px; font-weight: bold; }
+        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(26px); }
 
+        /* Multi-line Entry Form Grid */
+        .voucher-header { display: grid; grid-template-columns: 200px 200px 1fr; gap: 15px; margin-bottom: 20px; background: #f1f5f9; padding: 15px; border-radius: 8px; }
+        .entry-row { display: grid; grid-template-columns: 120px 1fr 200px 50px; gap: 10px; margin-bottom: 10px; align-items: center; position: relative; }
+        
+        label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+        .form-group { display: flex; flex-direction: column; position: relative; }
+        input, select, textarea { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box; }
+        textarea { resize: vertical; min-height: 60px; }
+        
+        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        button:disabled { opacity: 0.5; }
+        .btn-add-row { background: #0284c7; margin-bottom: 15px; padding: 6px 12px; font-size: 13px; }
+        .btn-remove-row { background: var(--danger); padding: 8px; font-size: 14px; height: 38px; }
+        
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; text-align: left; }
+        th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; vertical-align: top; }
+        th { background: #f1f5f9; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; margin-right: 5px; border: none; border-radius: 4px; color: white; cursor: pointer;}
+        .btn-edit { background: #eab308; }
+        .btn-delete { background: var(--danger); }
+        .btn-print { background: #64748b; }
+        .btn-save { background: var(--success); }
+        .btn-cancel { background: #94a3b8; }
+        
+        /* Autocomplete Suggestions */
+        .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 6px; max-height: 150px; overflow-y: auto; z-index: 99; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .suggestion-item { padding: 8px 12px; cursor: pointer; color: #334155; }
+        .suggestion-item:hover { background: #f1f5f9; }
+        
+        .hidden { display: none; }
+        .table-title { font-size: 18px; font-weight: bold; margin-top: 0; color: var(--primary); }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .badge-dr { background: #dbeafe; color: #1e40af; }
+        .badge-cr { background: #fee2e2; color: #991b1b; }
+        
+        .totals-box { text-align: right; margin-top: 10px; font-weight: bold; font-size: 15px; padding-right: 60px; }
+        .error-msg { color: var(--danger); font-size: 13px; font-weight: bold; margin-top: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>⚡ Multi-Line Ledger Dashboard</h2>
+    <h2>⚡ Tally-Style Multi-Line Ledger Dashboard</h2>
     <div id="authStatus" class="status">Connecting securely...</div>
 
     <!-- MAIN CONSOLIDATED INPUT FORM -->
@@ -148,7 +158,7 @@ th{background:#f1f5f9}
                     <th>Txn ID</th>
                     <th>Voucher No</th>
                     <th>Date</th>
-                    <th>Accounts</th>
+                    <th>Accounts & Splits (Double Entry)</th>
                     <th>Narration</th>
                     <th>Actions</th>
                 </tr>
@@ -165,7 +175,7 @@ th{background:#f1f5f9}
                     <th>Txn ID</th>
                     <th>Voucher No</th>
                     <th>Date</th>
-                    <th>Accounts</th>
+                    <th>Accounts & Splits (Double Entry)</th>
                     <th>Narration</th>
                     <th>Actions</th>
                 </tr>
@@ -238,11 +248,10 @@ signInAnonymously(auth);
 
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        document.getElementById("authStatus").innerText = "🔒 Secure Multi-Line Engine Active";
+        document.getElementById("authStatus").innerText = "🔒 Secure Tally Multi-Line Engine Active";
         if(submitBtn) submitBtn.disabled = false;
-        setupNarrationSuggestions();
         initRealtimeListeners();
-        
+        setupNarrationSuggestions();
     }
 });
 
@@ -456,64 +465,52 @@ function applyDateFilterAndListen() {
         endAt(toVal)
     );
 
-        const unsubscribeAdded = onChildAdded(branchRef, (snapshot) => {
-        const data = snapshot.val();
-        if(!data) return;
+    const unsubscribeAdded = onChildAdded(branchRef, (snapshot) => {
+    const data = snapshot.val();
+    if(!data) return;
 
-        const vNum = parseVoucherNumber(data.voucher_no);
-        if(activeBranch === 'natwa' && vNum > maxNatwaVoucher) maxNatwaVoucher = vNum;
-        if(activeBranch === 'basahi' && vNum > maxBasahiVoucher) maxBasahiVoucher = vNum;
+    const vNum = parseVoucherNumber(data.voucher_no);
+    if(activeBranch === 'natwa' && vNum > maxNatwaVoucher) maxNatwaVoucher = vNum;
+    if(activeBranch === 'basahi' && vNum > maxBasahiVoucher) maxBasahiVoucher = vNum;
 
-        if(data.entries) data.entries.forEach(e => uniqueAccounts.add(e.account));
-        uniqueNarrations.add(data.narration);
+    if(data.entries) data.entries.forEach(e => uniqueAccounts.add(e.account));
+    uniqueNarrations.add(data.narration);
 
-        // 1. मुख्य डेटा रो (Transaction Row)
-        const row = document.createElement("tr");
-        row.id = `row-${snapshot.key}`;
-        row.dataset.key = snapshot.key;
-        row.dataset.branch = activeBranch;
+    const row = document.createElement("tr");
+    row.id = `row-${snapshot.key}`;
+    row.dataset.key = snapshot.key;
+    row.dataset.branch = activeBranch;
 
-        // 2. ठीक नीचे वाली इमेज रो (Image Row)
-        const imgRow = document.createElement("tr");
-        imgRow.id = `row-img-${snapshot.key}`;
-        imgRow.className = "image-row";
+    renderRowStandard(row, data);
 
-        // दोनों रो में डेटा रेंडर करें
-        renderRowStandard(row, imgRow, data);
+    if(activeTable) {
+        activeTable.insertBefore(row, activeTable.firstChild);
+    }
+});
 
-        if(activeTable) {
-            // चूँकि हम insertBefore कर रहे हैं और हम चाहते हैं कि डेटा रो ऊपर रहे और इमेज रो उसके ठीक नीचे,
-            // इसलिए पहले इमेज रो इन्सर्ट होगी, फिर उसके ऊपर मुख्य डेटा रो इन्सर्ट होगी।
-            activeTable.insertBefore(imgRow, activeTable.firstChild);
-            activeTable.insertBefore(row, activeTable.firstChild);
-        }
-    });
+const unsubscribeChanged = onChildChanged(branchRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
 
-    const unsubscribeChanged = onChildChanged(branchRef, (snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
+    const row = document.getElementById(`row-${snapshot.key}`);
 
-        const row = document.getElementById(`row-${snapshot.key}`);
-        const imgRow = document.getElementById(`row-img-${snapshot.key}`);
+    if (row) {
+        renderRowStandard(row, data);
+    }
+});
 
-        if (row && imgRow) {
-            renderRowStandard(row, imgRow, data);
-        }
-    });
+// 🔥 DELETE होने पर table से row तुरंत हटेगी
+const unsubscribeRemoved = onChildRemoved(branchRef, (snapshot) => {
+    const row = document.getElementById(`row-${snapshot.key}`);
 
-    // 🔥 DELETE होने पर table से दोनों rows तुरंत हटेंगी
-    const unsubscribeRemoved = onChildRemoved(branchRef, (snapshot) => {
-        const row = document.getElementById(`row-${snapshot.key}`);
-        const imgRow = document.getElementById(`row-img-${snapshot.key}`);
+    if(row) {
+        row.remove();
+    }
 
-        if(row) row.remove();
-        if(imgRow) imgRow.remove();
-
-        // local cache भी हटाएँ
-        delete cacheRowData[`row-${snapshot.key}`];
-        delete cacheRowData[snapshot.key];
-    });
-
+    // local cache भी हटाएँ
+    delete cacheRowData[`row-${snapshot.key}`];
+    delete cacheRowData[snapshot.key];
+});
 
 activeListeners[activeBranch] = () => {
     unsubscribeAdded();
@@ -542,8 +539,8 @@ window.openTableInNewTab = openTableInNewTab;
 
 
 
-// 4. --- आपका अपडेटेड रेंडरर फंक्शन (DD-MM-YYYY फॉर्मेट के साथ) ---// 4. --- आपका अपडेटेड रेंडरर फंक्शन (डेटा रो + इमेज रो आर्किटेक्चर) ---
-function renderRowStandard(row, imgRow, data) {
+// 4. --- आपका अपडेटेड रेंडरर फंक्शन (DD-MM-YYYY फॉर्मेट के साथ) ---
+function renderRowStandard(row, data) {
     cacheRowData[row.id.replace("row-", "")] = data;
     cacheRowData[row.id] = data;
 
@@ -556,12 +553,13 @@ function renderRowStandard(row, imgRow, data) {
     entriesHtml += `</div>`;
     const safeNarrationText = data.narration ? data.narration.replace(/\n/g, '<br>') : '';
 
-    let docHtml = `<span class="no-doc" style="font-size:11px; color:#999;">No bills attached</span>`;
+    let docHtml = `<span class="no-doc" style="font-size:11px; color:#999; display:block; margin-top:5px;">No bills attached</span>`;
 
     if(data.billLinks && data.billLinks.length > 0) {
         docHtml = `
-            <div class="doc-container" style="display:flex; flex-direction:row; flex-wrap:wrap; gap:8px; align-items: center;">
-                <span style="font-weight: bold; font-size: 12px; color: #333;">📄 Receipts (${data.billLinks.length}): </span>
+            <details style="margin-top: 6px; font-size: 12px; background: #fafafa; padding: 4px; border: 1px solid #ddd; border-radius: 4px;">
+                <summary style="cursor: pointer; font-weight: bold; color: #333;">📄 View Receipts (${data.billLinks.length})</summary>
+                <div class="doc-container" style="margin-top:5px; display:flex; flex-direction:row; flex-wrap:wrap; gap:8px;">
         `;
         
         data.billLinks.forEach((link, index) => {
@@ -580,47 +578,33 @@ function renderRowStandard(row, imgRow, data) {
             }
         });
         
-        docHtml += `</div>`;
+        docHtml += `</div></details>`;
     }
 
-    // तारीख को YYYY-MM-DD से बदलकर DD-MM-YYYY फॉर्मेट में स्क्रीन पर दिखाने का लॉजिक
+    // 🛠️ तारीख को YYYY-MM-DD से बदलकर DD-MM-YYYY फॉर्मेट में स्क्रीन पर दिखाने का लॉजिक
     let displayDate = "";
     if (data.date && data.date.includes("-")) {
         const parts = data.date.split("-");
-        displayDate = `${parts[2]}-${parts[1]}-${parts[0]}`; 
+        displayDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // DD-MM-YYYY
     } else {
         displayDate = data.date || "";
     }
 
-    // 1. मुख्य रो में केवल ट्रांजैक्शन की डिटेल्स रहेंगी (रिसीप्ट हटा दी गई है)
     row.innerHTML = `
         <td><small><b>${data.txn_id}</b></small></td>
         <td><b>${data.voucher_no}</b></td>
         <td>${displayDate}</td>
         <td>${entriesHtml}</td>
-        <td><span style="white-space: pre-line;">${safeNarrationText}</span></td>
+        <td>
+            <span style="white-space: pre-line;">${safeNarrationText}</span>
+            ${docHtml}
+        </td>
         <td>
             <button class="btn-sm btn-edit" onclick="triggerInlineEdit('${row.id}')">Edit</button>
             <button class="btn-sm btn-delete" onclick="triggerDelete('${row.id}')">Delete</button>
             <button class="btn-sm btn-print" onclick="triggerPrint('${row.id}')">Print</button>
         </td>
     `;
-
-    // 2. जस्ट नीचे वाली रो में इमेज/रिसीप्ट पूरे 6 कॉलम्स (colspan="6") को घेर कर दिखेगी
-        // 2. जस्ट नीचे वाली रो में इमेज/रिसीप्ट <details> टैग के अंदर पैक होकर दिखेगी
-    imgRow.innerHTML = `
-        <td colspan="6" style="background-color: #fdfdfd; padding: 6px 12px; border-bottom: 2px solid #ddd;">
-            <details style="font-size: 12px; background: #fafafa; padding: 6px; border: 1px solid #e0e0e0; border-radius: 4px;">
-                <summary style="cursor: pointer; font-weight: bold; color: #333; outline: none; user-select: none;">
-                    📄 View Attachments (${data.billLinks ? data.billLinks.length : 0})
-                </summary>
-                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #ddd;">
-                    ${docHtml}
-                </div>
-            </details>
-        </td>
-    `;
-
 }
 
 
@@ -817,7 +801,7 @@ window.saveInlineEdit = async function(rowId) {
 
         if (statusDiv) {
             statusDiv.innerHTML =
-                " कंप्रेशन चल रहा है...";
+                "WhatsApp स्टाइल कंप्रेशन चल रहा है...";
         }
 
         try {
@@ -912,26 +896,21 @@ window.saveInlineEdit = async function(rowId) {
         cacheRowData[rowId].entries = updatedEntries;
         cacheRowData[rowId].narration = narration;
 
-                setTimeout(() => {
-            if (typeof renderRowStandard === "function") {
-                // 1. rowId से मुख्य डेटा रो ढूँढें (जैसे: row-12345)
-                const row = document.getElementById(rowId);
-                
-                // 2. उसी की इमेज रो भी ढूँढें (जैसे: row-img-12345)
-                // rowId में पहले से "row-" शामिल होता है, इसलिए replace करके key निकाल रहे हैं
-                const pureKey = rowId.replace("row-", "");
-                const imgRow = document.getElementById(`row-img-${pureKey}`);
+        setTimeout(() => {
 
-                if (row && imgRow) {
-                    // 3. अब तीनों सही आर्गुमेंट्स पास करें: row, imgRow, और updated data
-                    renderRowStandard(row, imgRow, cacheRowData[rowId]);
-                } else {
-                    // बैकअप: अगर DOM में रो नहीं मिली तो पेज रीलोड करें
-                    location.reload();
-                }
+            if (typeof renderRowStandard === "function") {
+
+                renderRowStandard(
+                    row,
+                    cacheRowData[rowId]
+                );
+
             } else {
+
                 location.reload();
+
             }
+
         }, 800);
 
     } catch (err) {
