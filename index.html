@@ -184,6 +184,19 @@
         </table>
     </div>
 </div>
+<!-- कैमरा पॉपअप मोडल -->
+<div id="cameraModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:99999; justify-content:center; align-items:center; flex-direction:column;">
+    <video id="modalVideo" autoplay playsinline style="width:90%; max-width:400px; border-radius:8px; background:#000;"></video>
+    <br>
+    <div>
+        <button id="modalSnapBtn" style="padding:10px 20px; background:#28a745; color:white; border:none; border-radius:5px; font-size:14px; margin-right:10px;">Click Photo</button>
+        <button id="modalCloseBtn" style="padding:10px 20px; background:#dc3545; color:white; border:none; border-radius:5px; font-size:14px;">Close</button>
+    </div>
+    <canvas id="modalCanvas" style="display:none;"></canvas>
+</div>
+
+
+
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -658,51 +671,47 @@ window.triggerInlineEdit = function(rowId) {
     currentDocsHtml += `</div>`;
 
     row.innerHTML = `
-        <td><small><b>${data.txn_id}</b></small></td>
-        <td><input type="text" value="${data.voucher_no}" id="edit-vouch-${key}" style="width:90px; font-weight:bold;"></td>
-        <td><input type="date" value="${data.date}" id="edit-date-${key}" style="width:125px;"></td>
-        <td>${editRowsHtml}</td>
-        <td>
-            <textarea id="edit-narr-${key}" style="width:100%; min-height:50px; margin-bottom:5px;">${data.narration}</textarea>
-            
-            <details open style="margin-top: 5px; font-size: 12px; background: #f5f5f5; padding: 6px; border-radius: 4px; border: 1px solid #ddd;">
-                <summary style="cursor: pointer; font-weight: bold; color: #333;">📎 Manage Bills / Photos</summary>
-                <div style="margin-top: 5px; padding-top: 5px;">
-                    <!-- यहाँ पुरानी इमेजेस फ्लेक्स लेआउट में दिखेंगी -->
-                    ${currentDocsHtml}
+    <td><small><b>${data.txn_id}</b></small></td>
+    <td><input type="text" value="${data.voucher_no}" id="edit-vouch-${key}" style="width:90px; font-weight:bold;"></td>
+    <td><input type="date" value="${data.date}" id="edit-date-${key}" style="width:125px;"></td>
+    <td>${editRowsHtml}</td>
+    <td>
+        <textarea id="edit-narr-${key}" style="width:100%; min-height:50px; margin-bottom:5px;">${data.narration}</textarea>
+        
+        <details open style="margin-top: 5px; font-size: 12px; background: #f5f5f5; padding: 6px; border-radius: 4px; border: 1px solid #ddd;">
+            <summary style="cursor: pointer; font-weight: bold; color: #333;">📎 Manage Bills / Photos</summary>
+            <div style="margin-top: 5px; padding-top: 5px;">
+                ${currentDocsHtml}
+                
+                <div style="border-top: 1px dashed #ccc; padding-top: 5px; margin-top: 5px;">
+                    <span style="font-size:11px; font-weight:bold; color:#555; display:block; margin-bottom:2px;">Add More Files:</span>
                     
-                    <div style="border-top: 1px dashed #ccc; padding-top: 5px; margin-top: 5px;">
-                        <span style="font-size:11px; font-weight:bold; color:#555; display:block; margin-bottom:2px;">Add More Files:</span>
-                        <input type="file" id="edit-file-${key}" accept="image/*" multiple style="font-size:11px; width:100%;">
-                        <div id="edit-status-${key}" style="font-size:11px; color:blue; margin-top:2px; font-weight:bold;"></div>
+                    <!-- नॉर्मल फाइल इनपुट (बिना capture के, ताकि क्रैश न हो) -->
+                    <input type="file" id="edit-file-${key}" accept="image/*" multiple style="font-size:11px; width:100%;">
+                    
+                    <!-- सेफ कैमरा बटन -->
+                    <button type="button" onclick="openSafeCamera('${key}')" style="margin-top:5px; font-size:11px; padding:4px 8px; background:#17a2b8; color:white; border:none; border-radius:3px; cursor:pointer;">📸 Take Live Photo</button>
+                    
+                    <!-- खींची गई फोटो का प्रीव्यू यहाँ दिखेगा -->
+                    <div id="cam-preview-container-${key}" style="margin-top:5px; display:none;">
+                        <img id="cam-img-${key}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; border:1px solid #ccc;">
+                        <span style="font-size:10px; color:green; display:block;">Photo Captured!</span>
                     </div>
-                </div>
-            </details>
-        </td>
-        <td>
-            <button id="save-btn-${key}" class="btn-sm btn-save" onclick="saveInlineEdit('${rowId}')">Save</button>
-            <button class="btn-sm btn-cancel" onclick="window.cancelInlineEdit('${rowId}')">Cancel</button>
-        </td>
-    `;
-};
 
-// ❌ इमेज को एडिट स्क्रीन से लाइव रिमूव करने का हेल्पर फंक्शन
-window.removeImageFromEdit = function(key, index) {
-    if(window.editBillLinksCache[key]) {
-        // एरे में से उस इंडेक्स की इमेज हटाएँ
-        window.editBillLinksCache[key].splice(index, 1);
-        
-        // यूज़र इंटरफ़ेस (UI) को तुरंत अपडेट करने के लिए एलिमेंट को डिलीट करें
-        const imgBox = document.getElementById(`edit-img-box-${key}-${index}`);
-        if(imgBox) imgBox.remove();
-        
-        // यदि अब कोई भी इमेज नहीं बची तो मैसेज दिखाएँ
-        const container = document.getElementById(`edit-preview-container-${key}`);
-        if(container && window.editBillLinksCache[key].length === 0) {
-            container.innerHTML = `<span style="font-size:11px; color:#999;">No bills attached</span>`;
+                    <div id="edit-status-${key}" style="font-size:11px; color:blue; margin-top:2px; font-weight:bold;"></div>
+                </div>
+            </div>
+        </details>
+    </td>
+    <td>
+        <button id="save-btn-${key}" class="btn-sm btn-save" onclick="saveInlineEdit('${rowId}')">Save</button>
+        <button class="btn-sm btn-cancel" onclick="window.cancelInlineEdit('${rowId}')">Cancel</button>
+    </td>
+`;
+
         }
-    }
-};
+    
+
 
 
 
@@ -1034,6 +1043,115 @@ function setupNarrationSuggestions() {
         sugBox.classList.remove("hidden");
     });
 }
+// यह आपके <script type="module"> के अंदर होना चाहिए
+
+let activeKey = null;
+let cameraStream = null;
+
+// फंक्शन को window ऑब्जेक्ट में असाइन करें ताकि HTML इसे एक्सेस कर सके
+window.openSafeCamera = async function(key) {
+    activeKey = key;
+    const modal = document.getElementById('cameraModal');
+    const video = document.getElementById('modalVideo');
+    
+    if (!modal || !video) {
+        console.error("Camera elements missing in DOM");
+        return;
+    }
+    
+    modal.style.display = 'flex';
+
+    const constraints = {
+        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+    };
+
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = cameraStream;
+    } catch (err) {
+        try {
+            cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = cameraStream;
+        } catch (e) {
+            alert("कैमरा शुरू नहीं हो सका: " + e.message);
+            window.closeCamera();
+        }
+    }
+}
+
+window.closeCamera = function() {
+    const modal = document.getElementById('cameraModal');
+    if (modal) modal.style.display = 'none';
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+    }
+}
+
+// यह इवेंट लिसनर मॉड्यूल के अंदर सीधे काम करेगा क्योंकि ये DOM से बंधा है
+document.addEventListener('DOMContentLoaded', () => {
+   
+    const closeBtn = document.getElementById('modalCloseBtn');
+    
+    // फोटो क्लिक करने का एक्शन (इसे अपने मॉड्यूल स्क्रिप्ट में अपडेट करें)
+const snapBtn = document.getElementById('modalSnapBtn');
+if (snapBtn) {
+    snapBtn.addEventListener('click', () => {
+        const video = document.getElementById('modalVideo');
+        const canvas = document.getElementById('modalCanvas');
+        const context = canvas.getContext('2d');
+        
+        if (!video || !canvas) return;
+
+        // कैमरे के साइज के अनुसार कैनवास सेट करें
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+        
+        // 1. फोटो को blob (बाइनरी डेटा) में बदलें
+        canvas.toBlob((blob) => {
+            if (!blob) return;
+
+            // 2. एक असली File ऑब्जेक्ट बनाएं (ताकि इनपुट इसे समझ सके)
+            const fileName = `camera_${Date.now()}.jpg`;
+            const capturedFile = new File([blob], fileName, { type: "image/jpeg" });
+
+            // 3. DataTransfer के जरिए फाइल को इनपुट में जबरन लोड करें
+            const fileInput = document.getElementById(`edit-file-${activeKey}`);
+            if (fileInput) {
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(capturedFile);
+                fileInput.files = dataTransfer.files; // पुरानी फाइल इनपुट में फाइल लोड हो गई!
+
+                // (वैकल्पिक) अगर आपने पुराना कोई 'change' इवेंट लगाया है तो उसे ट्रिगर करें
+                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            // 4. स्क्रीन पर छोटा प्रीव्यू दिखाएं
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            const previewImg = document.getElementById(`cam-img-${activeKey}`);
+            const previewContainer = document.getElementById(`cam-preview-container-${activeKey}`);
+            if (previewImg) previewImg.src = dataUrl;
+            if (previewContainer) previewContainer.style.display = 'block';
+
+            // कैमरा बंद करें
+            window.closeCamera();
+        }, 'image/jpeg', 0.8); // 0.8 क्वालिटी ताकि कंप्रेस रहे
+    });
+}
+
+
+           
+    if(closeBtn) {
+        closeBtn.addEventListener('click', window.closeCamera);
+    }
+});
+
+
+
+
+
+
 </script>
 </body>
 </html>
