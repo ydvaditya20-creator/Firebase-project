@@ -1,5 +1,4 @@
-
-name: Build Debug APK
+name: Build APK
 
 on:
   workflow_dispatch:
@@ -9,108 +8,92 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 21
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
 
-      - name: Prepare Web App
-        run: |
-          mkdir -p www
-          cp "index.html" www/index.html
-          python3 - <<'PY'
-          p="www/index.html"
-          s=open(p,encoding="utf-8").read()
-          debug='''<script>
-          (function(){
-            function showError(title,msg){
-              var d=document.getElementById("__debug_error__");
-              if(!d){
-                d=document.createElement("div");
-                d.id="__debug_error__";
-                d.style="position:fixed;z-index:999999;top:0;left:0;right:0;background:#300;color:#fff;padding:15px;font:14px monospace;white-space:pre-wrap;max-height:90vh;overflow:auto;border:3px solid red;";
-                document.documentElement.appendChild(d);
-              }
-              d.innerText+="\\n\\n"+title+"\\n"+msg;
-            }
-            window.addEventListener("error",function(e){
-              showError("❌ JavaScript ERROR",
-                "Message: "+(e.message||"Unknown")+
-                "\\nFile: "+(e.filename||"Unknown")+
-                "\\nLine: "+(e.lineno||"")+" Col: "+(e.colno||""));
-            });
-            window.addEventListener("unhandledrejection",function(e){
-              var r=e.reason;
-              showError("❌ UNHANDLED PROMISE",
-                r&&(r.stack||r.message)?(r.stack||r.message):String(r));
-            });
-            window.addEventListener("DOMContentLoaded",function(){
-              window.__APP_STARTED__=true;
-            });
-            setTimeout(function(){
-              if(!window.__APP_STARTED__)showError("❌ APP START ERROR","HTML/JavaScript start nahi hua.");
-            },10000);
-          })();
-          </script>'''
-          s=s.replace("<head>","<head>"+debug,1)
-          open(p,"w",encoding="utf-8").write(s)
-          PY
+    - name: Create Web Folder
+      run: |
+        mkdir -p www
+        cp index.html www/
 
-      - name: Create package
-        run: |
-          npm init -y
-          npm install @capacitor/core@^7.4.2 @capacitor/cli@^7.4.2 @capacitor/android@^7.4.2
+    - name: Create Capacitor Config
+      run: |
+        echo '{"appId":"com.example.myttap1","appName":"MyttAp1","webDir":"www"}' > capacitor.config.json
 
-      - name: Capacitor Config
-        run: |
-          cat > capacitor.config.json <<'EOF'
-          {
-            "appId":"com.example.myttap",
-            "appName":"MyttAp",
-            "webDir":"www",
-            "server":{
-              "androidScheme":"https"
-            }
+    - name: Install Dependencies
+      run: |
+        npm install
+        npm install @capacitor/camera@^7.0.0
+
+    - name: Add Android Platform
+      run: npx cap add android
+
+    - name: Add Network State Permission safely
+      run: |
+        node -e "
+        const fs = require('fs');
+        const path = 'android/app/src/main/AndroidManifest.xml';
+        if (fs.existsSync(path)) {
+          let content = fs.readFileSync(path, 'utf8');
+          if (!content.includes('ACCESS_NETWORK_STATE')) {
+            content = content.replace('</manifest>', '    <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />\n</manifest>');
+            fs.writeFileSync(path, content, 'utf8');
+            console.log('Permission added successfully!');
           }
-          EOF
+        } else {
+          console.log('Manifest file not found at expected path');
+        }
+        "
 
-      - name: Add Android
-        run: npx cap add android
+    - name: Inject Camera Permissions into Android Manifest
+      run: |
+        MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
+        PERMISSIONS="<uses-permission android:name=\"android.permission.CAMERA\" />\n    <uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\" />\n    <uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\" />"
+        sed -i "s|<application|$PERMISSIONS\n    <application|g" $MANIFEST_PATH
 
-      - name: Android Permissions
-        run: |
-          python3 - <<'PY'
-          p="android/app/src/main/AndroidManifest.xml"
-          s=open(p).read()
-          permissions=[
-            '<uses-permission android:name="android.permission.INTERNET"/>',
-            '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>',
-            '<uses-permission android:name="android.permission.CAMERA"/>'
-          ]
-          for x in permissions:
-            if x not in s:
-              s=s.replace("<application",x+"\n    <application",1)
-          open(p,"w").write(s)
-          PY
+    - name: Sync Android
+      run: npx cap sync android
+        
+    - name: Show Android Files
+      run: |
+        find android -name MainActivity.*
 
-      - name: Sync Capacitor
-        run: npx cap sync android
+    - name: Check File Content
+      run: cat android/app/src/main/java/com/example/myttap1/MainActivity.java
+      
+    - name: List All Generated Files & Folders
+      run: |
+        echo "=== 1. Root Directory Structure ==="
+        ls -la
+        
+        echo "=== 2. Inside Android Folder (Main Native Structure) ==="
+        ls -la android/
+        
+        echo "=== 3. Inside Android App Folder (Where code and assets live) ==="
+        ls -la android/app/
+        
+        echo "=== 4. Finding HTML/JS assets inside Android Project ==="
+        find android/app/src/main/assets/ -type f || echo "Assets not compiled here yet"
 
-      - name: Build APK
-        working-directory: android
-        run: ./gradlew assembleDebug --stacktrace
+    - name: Build APK
+      run: |
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug
+        path: android/app/build/outputs/apk/debug/app-debug.apk
