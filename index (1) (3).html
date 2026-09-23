@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Advanced Tally-Style Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+
+<style>
+/* Core Styling Variables */
+:root {
+    --primary: #0f4c81;     /* Tally Corporate Blue */
+    --primary-light: #e6f0fa;
+    --success: #1b7f3e;     /* Accounting Green */
+    --danger: #d32f2f;      /* Crimson Alert */
+    --text-dark: #2c3e50;
+    --border-color: #ced4da;
+    --bg-light: #f4f6f9;
+}
+
+/* Utilities */
+body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg-light); color: var(--text-dark); margin: 0; padding: 15px; }
+.container { max-width: 1200px; margin: 0 auto; }
+.card { background: white; padding: 22px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 1px; border: 1px solid #e2e8f0; }
+.bold-primary { font-weight: 700; color: var(--primary); }
+.text-center { text-align: center; }
+.status { background: #dcfce7; color: #15803d; padding: 10px; border-radius: 6px; margin-bottom: 1px; font-weight: 600; text-align: center; }
+        
+.text-right { text-align: right; }
+.mt-15 { margin-top: 15px; }
+.hidden { display: none !important; }
+
+/* Flex Header & Premium Toggle Switch */
+.flex-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--primary-light); }
+.flex-header h3 { margin: 0; color: var(--primary); font-size: 18px; }
+
+.switch-container { display: flex; align-items: center; background: #edf2f7; padding: 6px 12px; border-radius: 30px; border: 1px solid #e2e8f0; }
+.switch-label { font-size: 13px; font-weight: 600; padding: 0 4px; }
+.switch { position: relative; display: inline-block; width: 46px; height: 24px; margin: 0 8px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: blue; transition: .3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 24px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+input:checked + .slider { background-color: orange; }
+input:checked + .slider:before { transform: translateX(22px); }
+
+/* Voucher Header & Forms */
+.voucher-header { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; background: var(--primary-light); padding: 12px; border-radius: 6px; }
+.form-group { flex: 1; min-width: 180px; display: flex; flex-direction: column; }
+.form-group label { font-size: 12px; font-weight: 700; color: #555; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 0.5px; }
+input, textarea, select,.btn-remove-row  { padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box; transition: border 0.2s; background: #fff; }
+input:focus, textarea:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(15,76,129,0.15); }
+
+/* Dynamic Entry Row Layout (Tally Classic) */
+.entries-grid-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+.entry-row { display: flex; gap: 10px; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px dashed #cbd5e1; align-items: center; animation: fadeIn 0.2s ease-in; }
+.entry-row select { width: 80px; font-weight: bold; color: var(--primary); }
+.entry-row input[type="text"] { flex: 2; }
+.entry-row input[type="number"] { flex: 1; text-align: right; font-weight: 600; }
+.btn-remove { background: none; border: none; cursor: pointer; font-size: 16px; padding: 5px; transition: transform 0.1s; }
+.btn-remove:hover { transform: scale(1.15); }
+.suggestions { position: relative; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 6px; max-height: 150px;width:auto;overflow-y: auto; z-index: 99; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .suggestion-item { padding: 8px 12px; cursor: pointer; color: #334155; }
+        .suggestion-item:hover { background: #f1f5f9; }
+/* Action Buttons */
+.btn-add-row { background: var(--primary-light); color: var(--primary); border: 1px solid rgba(15,76,129,0.3); padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; text-align: center; transition: all 0.2s; }
+.btn-add-row:hover { background: var(--primary); color: white; }
+ 
+
+
+.btn-submit { padding: 12px 35px; font-size: 15px; font-weight: bold; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 2px 4px rgba(27,127,62,0.2); }
+.btn-submit:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; box-shadow: none; }
+
+/* Totals Box */
+.totals-box { display: flex; align-items: center; justify-content: flex-end; gap: 15px; background: #2d3748; color: white; padding: 14px 20px; border-radius: 6px; font-weight: 600; margin-top: 20px; font-size: 15px; }
+.total-divider { color: #4a5568; }
+.text-dr { color: #4ade80; font-weight: 700; }
+.text-cr { color: #f87171; font-weight: 700; }
+.btn-sm { padding: 5px 10px; font-size: 12px; margin-right: 5px; border: none; border-radius: 4px; color: white; cursor: pointer;}
+        .btn-edit { background: #eab308; }
+        .btn-delete { background: var(--danger); }
+        .btn-print { background: #64748b; }
+        .btn-save { background: var(--success); }
+        .btn-cancel { background: #94a3b8; }
+.error-msg { color: #fca5a5; font-size: 13px; margin-left: 15px; font-weight: normal; }
+.badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .badge-dr { background: #dbeafe; color: #1e40af; }
+        .badge-cr { background: #fee2e2; color: #991b1b; }
+/* Filter Container Styling */
+.filter-container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 1px; padding: 15px; background: white; border-radius: 8px; border: 1px solid var(--border-color); }
+.filter-inputs, .filter-actions { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+.filter-container button { padding: 8px 16px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; transition: opacity 0.2s; }
+.filter-container button:hover { opacity: 0.9; }
+.btn-filter { background: var(--success); }
+.btn-tab { background: var(--primary); }
+
+/* Premium Tally Tables */
+.table-header-bar { padding: 10px 15px; border-radius: 6px 6px 0 0; color: white; font-weight: bold; margin-bottom: -10px; }
+.h-natwa { background: #334155; }
+.h-basahi { background: #475569; }
+.table-title { margin: 0; font-size: 15px; letter-spacing: 0.5px; }
+.table-responsive { width: 100%; overflow-x: auto; border-radius: 0 0 6px 6px; border: 1px solid var(--border-color); border-top: none; }
+.tally-table { width: 100%; border-collapse: collapse; min-width: 750px; background: white; }
+.tally-table th, .tally-table td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; font-size: 13.5px; text-align: left; }
+.tally-table th { background: #f8fafc; color: #475569; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; border-bottom: 2px solid #cbd5e1; }
+.tally-table tbody tr:hover { background-color: #f1f5f9; }
+
+/* Camera Modal Design */
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); z-index: 99999; justify-content: center; align-items: center; padding: 20px; }
+.modal-content { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); text-align: center; }
+.modal-video { width: 100%; max-width: 400px; border-radius: 8px; background: #000; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+.modal-buttons { margin-top: 15px; display: flex; justify-content: center; gap: 10px; }
+.modal-buttons button { padding: 10px 22px; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
+.btn-snap { background: var(--success); }
+.btn-close { background: var(--danger); }
+
+/* Keyframes & Mobile Responsiveness */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 768px) {
+    .filter-container, .filter-inputs, .filter-actions { flex-direction: column; align-items: stretch;  }
+    .voucher-header { flex-direction: column; gap: 10px; }
+	 /* Entry Row Grid changes to stacked layout with remove button handled neatly */
+    .entry-row { display:grid;grid-template-columns: 1fr; gap: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 15px; margin-bottom: 15px; }
+    .entry-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .btn-remove-row { width: 100%; height: auto; text-align: center; }
+    
+    .totals-box { flex-direction: column; text-align: center; align-items: center; gap: 5px; }
+    .total-divider { display: none; }
+    .flex-header { flex-direction: column; gap: 15px; text-align: center; }
+}
+
+
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div id="authStatus" class="status">Connecting securely...</div>
+
+    <!-- MAIN CONSOLIDATED INPUT FORM -->
+    <div class="card">
+        <div class="flex-header">
+            <h3> New Multi-Line Journal Voucher</h3>
+            <!-- सुधरा हुआ आधुनिक स्विच -->
+            <div class="switch-container">
+                <span class="switch-label">  Natwa</span>
+                <label class="switch">
+                    <input type="checkbox" id="tableToggle">
+                    <span class="slider"></span>
+                </label>
+                <span class="switch-label"> Basahi</span>
+            </div>
+        </div>
+
+        <form id="txnForm">
+            <!-- Voucher Settings -->
+            <div class="voucher-header">
+                <div class="form-group">
+                    <label>Voucher Auto No</label>
+                    <input type="text" id="vouchNo" readonly class="bold-primary text-center">
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="vouchDate" required>
+                </div>
+            </div>
+
+            <!-- Double Entry Rows - (यह कंटेनर CSS से ग्रिड लेआउट में दिखेगा) -->
+            <div id="entriesContainer" class="entries-grid-container">
+                <!-- Example of a beautiful structured row inside JavaScript dynamically:
+                <div class="entry-row">
+                    <select class="entry-type"><option>Dr</option><option>Cr</option></select>
+                    <input type="text" placeholder="Account Name">
+                    <input type="number" placeholder="Amount ( )">
+                    <button class="btn-remove">❌</button>
+                </div> 
+                -->
+            </div>
+
+            <button type="button" class="btn-add-row" id="addAccRowBtn"> Add Row (Dr/Cr)</button>
+
+            <!-- Multi-line Narration Field -->
+            <div class="form-group mt-15">
+                <label> Remarks</label>
+                <textarea id="narration" autocomplete="off" placeholder="Write comprehensive multiline details..." required></textarea>
+                <div id="narrationSuggestions" class="suggestions hidden"></div>
+            </div>
+
+            <!-- Totals & Validation Verification Block -->
+            <div class="totals-box">
+                <div class="total-item">Total Dr: <span id="totalDrLabel" class="text-dr"> 0.00</span></div>
+                <div class="total-divider">|</div>
+                <div class="total-item">Total Cr: <span id="totalCrLabel" class="text-cr"> 0.00</span></div>
+                <div id="validationError" class="error-msg"></div>
+            </div>
+
+            <div class="text-right mt-15">
+                <button type="submit" id="submitBtn" disabled class="btn-submit">Save Voucher Entry</button>
+            </div>
+        </form>
+        <div id="speedLog" class="speed-log"></div>
+    </div>
+
+    <!-- तारीख फ़िल्टर बार और न्यू टैब बटन -->
+    <div class="filter-container">
+        <div class="filter-inputs">
+            <div>
+                <label class="filter-label">From Date: </label>
+                <input type="date" id="filterFromDate">
+            </div>
+            <div>
+                <label class="filter-label">To Date: </label>
+                <input type="date" id="filterToDate">
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button onclick="applyDateFilterAndListen()" class="btn-filter">🔍 Filter Data</button>
+            <button onclick="openTableInNewTab()" class="btn-tab">🔗 Open in New Tab</button>
+        </div>
+    </div>
+
+    <!-- SEPARATE DASHBOARD LEDGER TABLES -->
+    <div class="card" id="natwaCard">
+        <div class="table-header-bar h-natwa">
+            <p class="table-title">  Natwa Ledger Records</p>
+        </div>
+        <div class="table-responsive">
+            <table class="tally-table">
+                <thead>
+                    <tr>
+                        <th>Txn ID</th>
+                        <th>Voucher No</th>
+                        <th>Date</th>
+                        <th>Accounts & Splits (Double Entry)</th>
+                        <th>Narration</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="natwaTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card" id="basahiCard">
+        <div class="table-header-bar h-basahi">
+            <p class="table-title">Basahi Ledger Records</p>
+        </div>
+        <div class="table-responsive">
+            <table class="tally-table">
+                <thead>
+                    <tr>
+                        <th>Txn ID</th>
+                        <th>Voucher No</th>
+                        <th>Date</th>
+                        <th>Accounts & Splits (Double Entry)</th>
+                        <th>Narration</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="basahiTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- कैमरा पॉपअप मोडल -->
+<div id="cameraModal" class="modal">
+    <div class="modal-content">
+        <video id="modalVideo" autoplay playsinline class="modal-video"></video>
+        <div class="modal-buttons">
+            <button id="modalSnapBtn" class="btn-snap"> Click Photo</button>
+            <button id="modalCloseBtn" class="btn-close">XClose</button>
+        </div>
+    </div>
+    <canvas id="modalCanvas" class="hidden"></canvas>
+</div>
+
+
+
+
+
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, push, orderByChild,startAt,endAt, update, remove, query, limitToLast, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDPcVvNNJZRVGF9SESynXtsZYwdJXB7J8U",
+    authDomain: "shemacc-3ccac.firebaseapp.com",
+    databaseURL: "https://shemacc-3ccac-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "shemacc-3ccac",
+    storageBucket: "shemacc-3ccac.firebasestorage.app",
+    messagingSenderId: "307019636811",
+    appId: "1:307019636811:web:8f6ee756dbb7e756e8edce"
+};
+
+
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+let uniqueAccounts = new Set();
+let uniqueNarrations = new Set();
+let maxNatwaVoucher = 0;
+let maxBasahiVoucher = 0;
+// Local memory cache to revert inline edits on cancel
+let cacheRowData = {}; 
+
+const submitBtn = document.getElementById("submitBtn");
+const tableToggle = document.getElementById("tableToggle");
+const entriesContainer = document.getElementById("entriesContainer");
+const totalDrLabel = document.getElementById("totalDrLabel");
+const totalCrLabel = document.getElementById("totalCrLabel");
+const validationError = document.getElementById("validationError");
+
+document.getElementById("vouchDate").value = new Date().toISOString().split('T')[0];
+
+window.calculateFormTotals = function() {
+    let totalDr = 0, totalCr = 0;
+    document.querySelectorAll(".entry-row").forEach(row => {
+        const type = row.querySelector(".row-type").value;
+        const amt = parseFloat(row.querySelector(".row-amount").value) || 0;
+        if(type === "Dr") totalDr += amt; else totalCr += amt;
+    });
+    totalDrLabel.innerText = totalDr.toFixed(2);
+    totalCrLabel.innerText = totalCr.toFixed(2);
+    
+    if(totalDr.toFixed(2) !== totalCr.toFixed(2)) {
+        validationError.innerText = "⚠️ Total Debits must exactly equal Total Credits!";
+        submitBtn.disabled = true;
+    } else if(totalDr === 0) {
+        validationError.innerText = "⚠️ Total Amount cannot be zero.";
+        submitBtn.disabled = true;
+    } else {
+        validationError.innerText = "";
+        submitBtn.disabled = false;
+    }
+};
+
+signInAnonymously(auth);
+
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        document.getElementById("authStatus").innerText = " Secure Multi-Line Engine Active";
+        if(submitBtn) submitBtn.disabled = false;
+        setupNarrationSuggestions();
+        initRealtimeListeners();
+        
+    }
+});
+
+function generateTxnData() {
+    const d = new Date();
+    const currentYearShort = String(d.getFullYear()).slice(-2); 
+    
+    const timePart = String(d.getHours()).padStart(2,'0') + 
+                     String(d.getMinutes()).padStart(2,'0') + 
+                     String(d.getSeconds()).padStart(2,'0') + "-" + 
+                     String(d.getMilliseconds()).padStart(3,'0');
+    
+    const isBasahi = tableToggle.checked;
+    const prefix = isBasahi ? "B" : "N";
+    const nextNum = isBasahi ? (maxBasahiVoucher + 1) : (maxNatwaVoucher + 1);
+    
+    const txnId = `TXN-${timePart}`;
+    const vouchNo = `${prefix}-${currentYearShort}-${String(nextNum).padStart(4, '0')}`;
+    
+    return { txnId, vouchNo };
+}
+
+function refreshVoucherField() {
+    const data = generateTxnData();
+    document.getElementById("vouchNo").value = data.vouchNo;
+}
+setInterval(refreshVoucherField, 500);
+tableToggle.addEventListener("change", refreshVoucherField);
+
+window.removeRow = function(rowId) {
+    const row = document.getElementById(rowId);
+    if(row) {
+        row.remove();
+        window.calculateFormTotals();
+    }
+};
+
+let rowCounter = 0;
+function addAccountRow(type = "Dr", accountName = "", amount = "") {
+    rowCounter++;
+    const rowId = `entry-row-${rowCounter}`;
+    
+    const div = document.createElement("div");
+    div.className = "entry-row";
+    div.id = rowId;
+    div.innerHTML = `
+        <div>
+            <select class="row-type" onchange="window.calculateFormTotals()">
+                <option value="Dr" ${type === "Dr" ? "selected" : ""}>Dr</option>
+                <option value="Cr" ${type === "Cr" ? "selected" : ""}>Cr</option>
+            </select>
+        </div>
+        <div style="position:relative;">
+            <input type="text" class="row-account" value="${accountName}" placeholder="Account..." autocomplete="off" required>
+            <div class="suggestions hidden"></div>
+        </div>
+        <div>
+            <input type="number" step="0.01" class="row-amount" value="${amount}" placeholder="Amount  " oninput="window.calculateFormTotals()" required>
+        </div>
+        <div>
+            <button type="button" class="btn-remove-row" onclick="window.removeRow('${rowId}')" style="colour:red">X</button>
+        </div>
+    `;
+    entriesContainer.appendChild(div);
+    setupAccountRowSuggestions(div.querySelector(".row-account"), div.querySelector(".suggestions"));
+    window.calculateFormTotals();
+}
+
+addAccountRow("Dr");
+addAccountRow("Cr");
+document.getElementById("addAccRowBtn").addEventListener("click", () => addAccountRow("Dr"));
+
+document.getElementById("txnForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    window.calculateFormTotals();
+    if(submitBtn.disabled) return;
+    
+    submitBtn.disabled = true;
+    const targetBranch = tableToggle.checked ? "basahi" : "natwa";
+    const dbRef = ref(db, `transactions/${targetBranch}`);
+    const timing = generateTxnData();
+    
+    const items = [];
+    document.querySelectorAll(".entry-row").forEach(row => {
+        items.push({
+            type: row.querySelector(".row-type").value,
+            account: row.querySelector(".row-account").value.trim(),
+            amount: parseFloat(row.querySelector(".row-amount").value).toFixed(2)
+        });
+        uniqueAccounts.add(row.querySelector(".row-account").value.trim());
+    });
+
+    const multiLineNarration = document.getElementById("narration").value.trim();
+    uniqueNarrations.add(multiLineNarration);
+
+    try {
+        await push(dbRef, {
+            txn_id: timing.txnId,
+            voucher_no: timing.vouchNo,
+            date: document.getElementById("vouchDate").value,
+            entries: items,
+            narration: multiLineNarration,
+            billLinks: [],
+            timestamp: Date.now()
+        });
+        document.getElementById("speedLog").innerText = `⚡ Voucher ${timing.vouchNo} Synced Successfully!`;
+        entriesContainer.innerHTML = "";
+        addAccountRow("Dr"); 
+        addAccountRow("Cr");
+        document.getElementById("narration").value = "";
+    } catch (err) { alert("Error: " + err.message); }
+    submitBtn.disabled = false;
+});
+function parseVoucherNumber(vouchStr) {
+    if(!vouchStr) return 0;
+    const parts = vouchStr.split('-');
+    if(parts.length >= 3) {
+        return parseInt(parts[2]) || 0;
+    }
+    return 0;
+}
+
+// एक्टिव Firebase लिसनर्स को ट्रैक करने के लिए ग्लोबल ऑब्जेक्ट
+// एक्टिव Firebase लिसनर्स को ट्रैक करने के लिए ग्लोबल ऑब्जेक्ट
+let activeListeners = {};
+
+// 1. पेज लोड होने का लॉजिक
+document.addEventListener("DOMContentLoaded", () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    let fromParam = urlParams.get('from');
+    let toParam = urlParams.get('to');
+
+    if (!fromParam || !toParam) {
+        // डिफ़ॉल्ट रूप से पिछले 2 दिन
+        const toDate = new Date(); 
+        const fromDate = new Date();
+        fromDate.setDate(toDate.getDate() - 1); 
+
+        fromParam = fromDate.toISOString().split('T')[0];
+        toParam = toDate.toISOString().split('T')[0];
+    }
+
+    document.getElementById("filterFromDate").value = fromParam;
+    document.getElementById("filterToDate").value = toParam;
+
+    // 🛠️ टॉगल स्विच का इवेंट लिसनर
+    const toggleInput = document.getElementById("tableToggle");
+    if (toggleInput) {
+        toggleInput.addEventListener("change", () => {
+            // जैसे ही टॉगल बदलेगा, यह टेबल को भी शो/हाइड करेगा और डेटा भी लोड करेगा
+            applyDateFilterAndListen();
+        });
+    }
+
+    // पहली बार डेटा लोड करें
+    applyDateFilterAndListen();
+});
+
+// 2. फ़िल्टर और टेबल शो/हाइड करने का मुख्य फंक्शन
+function applyDateFilterAndListen() {
+    const fromVal = document.getElementById("filterFromDate").value;
+    const toVal = document.getElementById("filterToDate").value;
+
+    if (!fromVal || !toVal) return;
+
+    const toggleInput = document.getElementById("tableToggle");
+    if (!toggleInput) return;
+    
+    // HTML के अनुसार: Checked = Basahi (🏢), Unchecked = Natwa ( )
+    const activeBranch = toggleInput.checked ? 'basahi' : 'natwa'; 
+    const inactiveBranch = toggleInput.checked ? 'natwa' : 'basahi';
+
+    // 🛠️ विजुअल फिक्स: एक्टिव टेबल को दिखाएं और इनएक्टिव टेबल को छुपाएं
+    // (नोट: यदि आपकी पूरी <table> की ID अलग है, तो आप 'TableBody' की जगह अपनी मुख्य Table ID का उपयोग भी कर सकते हैं)
+    const activeTable = document.getElementById(`${activeBranch}TableBody`);
+    const inactiveTable = document.getElementById(`${inactiveBranch}TableBody`);
+    
+    // अगर आप पूरी Table को हाइड करना चाहते हैं, तो सुनिश्चित करें कि आपकी टेबल या उसके पैरेंट कंटेनर पर ये IDs हों।
+    // यहाँ हम इनके बॉडी कंटेनर को मैनेज कर रहे हैं:
+    if (activeTable) {
+        // अगर आपने पूरे table एलिमेंट को हाइड करना है, तो .closest('table') का उपयोग करें
+        const mainTable = activeTable.closest('table');
+        if (mainTable) mainTable.style.display = ""; 
+    }
+    if (inactiveTable) {
+        const mainTable = inactiveTable.closest('table');
+        if (mainTable) mainTable.style.display = "none";
+    }
+
+    // A. इनएक्टिव ब्रांच का Firebase कनेक्शन तुरंत कट (Off) करें
+    if (activeListeners[inactiveBranch]) {
+        activeListeners[inactiveBranch](); 
+        delete activeListeners[inactiveBranch];
+    }
+
+    // B. एक्टिव टेबल का पुराना डेटा साफ करें ताकि नया फ्रेश डेटा लोड हो सके
+    if (activeTable) activeTable.innerHTML = ""; 
+
+    // C. एक्टिव ब्रांच का कोई पुराना लिसनर चल रहा है, तो उसे भी बंद करें
+    if (activeListeners[activeBranch]) {
+        activeListeners[activeBranch]();
+    }
+
+    console.log(`Switched to: ${activeBranch}. Fetching data from ${fromVal} to ${toVal}`);
+
+    // D. 🚀 Firebase से रेंज क्वेरी
+    const branchRef = query(
+        ref(db, `transactions/${activeBranch}`),
+        orderByChild('date'),
+        startAt(fromVal),
+        endAt(toVal)
+    );
+
+    const unsubscribeAdded = onChildAdded(branchRef, (snapshot) => {
+    const data = snapshot.val();
+    if(!data) return;
+
+    const vNum = parseVoucherNumber(data.voucher_no);
+    if(activeBranch === 'natwa' && vNum > maxNatwaVoucher) maxNatwaVoucher = vNum;
+    if(activeBranch === 'basahi' && vNum > maxBasahiVoucher) maxBasahiVoucher = vNum;
+
+    if(data.entries) data.entries.forEach(e => uniqueAccounts.add(e.account));
+    uniqueNarrations.add(data.narration);
+
+    const row = document.createElement("tr");
+    row.id = `row-${snapshot.key}`;
+    row.dataset.key = snapshot.key;
+    row.dataset.branch = activeBranch;
+
+    renderRowStandard(row, data);
+
+    if(activeTable) {
+        activeTable.insertBefore(row, activeTable.firstChild);
+    }
+});
+
+const unsubscribeChanged = onChildChanged(branchRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    const row = document.getElementById(`row-${snapshot.key}`);
+
+    if (row) {
+        renderRowStandard(row, data);
+    }
+});
+
+// 🔥 DELETE होने पर table से row तुरंत हटेगी
+const unsubscribeRemoved = onChildRemoved(branchRef, (snapshot) => {
+    const row = document.getElementById(`row-${snapshot.key}`);
+
+    if(row) {
+        row.remove();
+    }
+
+    // local cache भी हटाएँ
+    delete cacheRowData[`row-${snapshot.key}`];
+    delete cacheRowData[snapshot.key];
+});
+
+activeListeners[activeBranch] = () => {
+    unsubscribeAdded();
+    unsubscribeChanged();
+    unsubscribeRemoved();
+};}
+
+// ग्लोबल स्कोप में फंक्शंस डालें
+window.applyDateFilterAndListen = applyDateFilterAndListen;
+window.openTableInNewTab = openTableInNewTab;
+
+// 3. ओपन इन न्यू टैब का सही फंक्शन
+function openTableInNewTab() {
+    const fromVal = document.getElementById("filterFromDate").value;
+    const toVal = document.getElementById("filterToDate").value;
+    const currentUrl = window.location.origin + window.location.pathname;
+    window.open(`${currentUrl}?from=${fromVal}&to=${toVal}`, '_blank');
+}
+
+// इन फंक्शंस को ग्लोबल (window) स्कोप में डालें ताकि HTML onclick इन्हें ढूंढ सके
+window.applyDateFilterAndListen = applyDateFilterAndListen;
+window.openTableInNewTab = openTableInNewTab;
+
+
+
+
+
+
+// 4. --- आपका अपडेटेड रेंडरर फंक्शन (DD-MM-YYYY फॉर्मेट के साथ) ---
+function renderRowStandard(row, data) {
+    cacheRowData[row.id.replace("row-", "")] = data;
+    cacheRowData[row.id] = data;
+
+    let entriesHtml = `<div style="display:flex; flex-direction:column; gap:4px;">`;
+    if(data.entries) {
+        data.entries.slice().reverse().forEach(e => {
+            entriesHtml += `<span><span class="badge badge-${e.type.toLowerCase()}">${e.type}</span> <b>${e.account}</b>:  ${e.amount}</span>`;
+        });
+    }
+    entriesHtml += `</div>`;
+    const safeNarrationText = data.narration ? data.narration.replace(/\n/g, '<br>') : '';
+
+    // 📄 इमेज/डिफ़ॉल्ट डॉक्स का HTML
+    let docHtml = `<span class="no-doc" style="font-size:11px; color:#999; display:block;">No bills attached</span>`;
+
+    if(data.billLinks && data.billLinks.length > 0) {
+        docHtml = `
+            <details style="font-size: 12px; background: #fafafa; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                <summary style="cursor: pointer; font-weight: bold; color: #007bff;">📄 View Receipts (${data.billLinks.length})</summary>
+                <div class="doc-container" style="margin-top:8px; display:flex; flex-direction:row; flex-wrap:wrap; gap:8px;">
+        `;
+        
+        data.billLinks.forEach((link, index) => {
+            if(link.indexOf("data:image") === 0) {
+                docHtml += `
+                    <div class="iframe-box" style="flex: 1 1 180px; max-width: 200px; padding: 5px; background: #fff3cd; border: 1px solid #ffeba0; border-radius: 4px;">
+                        <span class="badge-process" style="background:#ffc107; color:#000; padding:2px 5px; font-size:10px; font-weight:bold; border-radius:3px;">⚡ Uploading</span><br>
+                        <img src="${link}" style="width:100%; max-height:120px; object-fit:contain; border-radius:4px; margin-top:5px;">
+                    </div>`;
+            } else {
+                docHtml += `
+                    <div class="iframe-box" style="flex: 1 1 180px; max-width: 200px; padding: 5px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;">
+                        <span class="badge-drive" style="background:#28a745; color:#fff; padding:2px 5px; font-size:10px; font-weight:bold; border-radius:3px;">☁ Cloud Link</span><br>
+                        <iframe src="${link}" width="100%" height="120" style="border:none; margin-top:5px; border-radius:4px; background:#fff;"></iframe>
+                    </div>`;
+            }
+        });
+        
+        docHtml += `</div></details>`;
+    }
+
+    // 🛠️ तारीख फॉर्मेट लॉजिक (DD-MM-YYYY)
+    let displayDate = "";
+    if (data.date && data.date.includes("-")) {
+        const parts = data.date.split("-");
+        displayDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+    } else {
+        displayDate = data.date || "";
+    }
+
+    // 1. मुख्य डेटा रो का कंटेंट
+    row.innerHTML = `
+        <td><small><b>${data.txn_id}</b></small></td>
+        <td><b>${data.voucher_no}</b></td>
+        <td>${displayDate}</td>
+        <td>${entriesHtml}</td>
+        <td>
+            <span style="white-space: pre-line;">${safeNarrationText}</span>
+        </td>
+        <td>
+            <button class="btn-sm btn-edit" onclick="triggerInlineEdit('${row.id}')">Edit</button>
+            <button class="btn-sm btn-delete" onclick="triggerDelete('${row.id}')">Delete</button>
+            <button class="btn-sm btn-print" onclick="triggerPrint('${row.id}')">Print</button>
+        </td>
+    `;
+
+    // 2. इमेज रो इन्सर्ट करने का सुरक्षित फंक्शन
+    function injectDetailRow() {
+        const oldDetailRow = document.getElementById(`detail-${row.id}`);
+        if (oldDetailRow) {
+            oldDetailRow.remove();
+        }
+
+        const detailRowHtml = `
+            <tr id="detail-${row.id}" class="image-detail-row">
+                <td colspan="6" style="padding: 4px 10px; background-color: #fdfdfd;">
+                    ${docHtml}
+                </td>
+            </tr>
+        `;
+        row.insertAdjacentHTML('afterend', detailRowHtml);
+    }
+
+    // 3. 🛡️ एरर से बचने के लिए चेक: अगर पैरेंट मौजूद है तो तुरंत डालें, नहीं तो DOM लोड होने का इंतज़ार करें
+    if (row.parentNode) {
+        injectDetailRow();
+    } else {
+        // यह कोड 0 मिलिसेकंड का डिले देता है ताकि पैरेंट लूप रो को टेबल में अपेंड कर सके
+        setTimeout(() => {
+            if (row.parentNode) {
+                injectDetailRow();
+            }
+        }, 0);
+    }
+}
+
+
+
+window.editBillLinksCache = window.editBillLinksCache || {};
+
+window.triggerInlineEdit = function(rowId) {
+    const row = document.getElementById(rowId);
+    const key = row.dataset.key;
+    const data = cacheRowData[rowId];
+    if(!data) return;
+
+    // इस स्पेसिफिक रो (Row) के मौजूदा बिल लिंक्स को एडिट कैश में स्टोर करें
+    window.editBillLinksCache[key] = data.billLinks ? [...data.billLinks] : [];
+
+    let editRowsHtml = `<div id="edit-container-${key}">`;
+    data.entries.forEach((e, idx) => {
+        editRowsHtml += `
+            <div style="display:flex; gap:5px; margin-bottom:5px;">
+                <select class="edit-type-${key}" style="width:60px;">
+                    <option value="Dr" ${e.type === "Dr" ? "selected" : ""}>Dr</option>
+                    <option value="Cr" ${e.type === "Cr" ? "selected" : ""}>Cr</option>
+                </select>
+                <input type="text" class="edit-acc-${key}" value="${e.account}" style="width:120px;">
+                <input type="number" step="0.01" class="edit-amt-${key}" value="${e.amount}" style="width:80px;">
+            </div>
+        `;
+    });
+    editRowsHtml += `</div>`;
+
+    // 📄 मौजूदा इमेजेस को डिलीट बटन के साथ दिखाने के लिए HTML जेनरेट करना
+    let currentDocsHtml = `<div id="edit-preview-container-${key}" style="display:flex; flex-direction:row; flex-wrap:wrap; gap:8px; margin-bottom:8px;">`;
+    if(window.editBillLinksCache[key].length === 0) {
+        currentDocsHtml += `<span id="no-docs-text-${key}" style="font-size:11px; color:#999;">No bills attached</span>`;
+    } else {
+        window.editBillLinksCache[key].forEach((link, idx) => {
+            const isLocal = link.indexOf("data:image") === 0;
+            currentDocsHtml += `
+                <div id="edit-img-box-${key}-${idx}" class="iframe-box" style="position:relative; width:90px; padding:3px; background:${isLocal ? '#fff3cd':'#d4edda'}; border:1px solid ${isLocal ? '#ffeba0':'#c3e6cb'}; border-radius:4px;">
+                    <button type="button" onclick="window.removeImageFromEdit(this, ${idx}, '${key}')" style="position:absolute; top:-4px; right:-4px; background:red; color:white; border:none; border-radius:50%; width:18px; height:18px; font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:bold; z-index:10;">×</button>
+                    ${isLocal 
+                        ? `<img src="\${link}" style="width:100%; height:60px; object-fit:contain; border-radius:3px;">`
+                        : `<iframe src="\${link}" width="100%" height="60" style="border:none; background:#fff; border-radius:3px;"></iframe>`
+                    }
+                </div>`;
+        });
+    }
+    currentDocsHtml += `</div>`;
+
+    // 1. 🛠️ मुख्य डेटा इनपुट वाली रो (6 कॉलम्स के साथ)
+    row.innerHTML = `
+        <td><small><b>${data.txn_id}</b></small></td>
+        <td><input type="text" value="${data.voucher_no}" id="edit-vouch-${key}" style="width:90px; font-weight:bold;"></td>
+        <td><input type="date" value="${data.date}" id="edit-date-${key}" style="width:125px;"></td>
+        <td>${editRowsHtml}</td>
+        <td>
+            <textarea id="edit-narr-${key}" style="width:100%; min-height:50px; margin-bottom:5px;">${data.narration}</textarea>
+        </td>
+        <td>
+            <button id="save-btn-${key}" class="btn-sm btn-save" onclick="saveInlineEdit('${rowId}')">Save</button>
+            <button class="btn-sm btn-cancel" onclick="window.cancelInlineEdit('${rowId}')">Cancel</button>
+        </td>
+    `;
+
+    // 2. ⚠️ अगर पहले से कोई सामान्य व्यू-मोड वाली डिटेल रो खुली है, तो उसे हटाएँ
+    const oldDetailRow = document.getElementById(`detail-${rowId}`);
+    if (oldDetailRow) {
+        oldDetailRow.remove();
+    }
+
+    // 3. ⚠️ अगर पहले से ही कोई पुरानी एडिट-डिटेल रो खुली रह गई हो, तो उसे भी हटाएँ
+    const oldEditDetailRow = document.getElementById(`edit-detail-${rowId}`);
+    if (oldEditDetailRow) {
+        oldEditDetailRow.remove();
+    }
+
+    // 4. ⚡ मुख्य एडिट रो के ठीक नीचे पूरी चौड़ाई (colspan="6") में इमेज मैनेजमेंट पैनल जोड़ें
+    const editDetailRowHtml = `
+        <tr id="edit-detail-${rowId}" class="image-edit-detail-row">
+            <td colspan="6" style="padding: 8px 10px; background-color: #f9f9f9; border-top: 1px dashed #ddd;">
+                <details open style="font-size: 12px; background: #ffffff; padding: 10px; border-radius: 4px; border: 1px solid #ccc;">
+                    <summary style="cursor: pointer; font-weight: bold; color: #17a2b8;">📎 Manage Bills & Photos (Edit Mode)</summary>
+                    <div style="margin-top: 8px;">
+                        ${currentDocsHtml}
+                        
+                        <div style="border-top: 1px dashed #eee; padding-top: 8px; margin-top: 8px;">
+                            <span style="font-size:11px; font-weight:bold; color:#555; display:block; margin-bottom:4px;">Add More Files:</span>
+                            
+                            <input type="file" id="edit-file-${key}" accept="image/*" multiple style="font-size:11px; width:100%;">
+                            
+                            <button type="button" onclick="openSafeCamera('${key}')" style="margin-top:6px; font-size:11px; padding:4px 8px; background:#17a2b8; color:white; border:none; border-radius:3px; cursor:pointer;">📸 Take Live Photo</button>
+                            
+                            <div id="cam-preview-container-${key}" style="margin-top:5px; display:none;">
+                                <img id="cam-img-${key}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; border:1px solid #ccc;">
+                                <span style="font-size:10px; color:green; display:block;">Photo Captured!</span>
+                            </div>
+
+                            <div id="edit-status-${key}" style="font-size:11px; color:blue; margin-top:2px; font-weight:bold;"></div>
+                        </div>
+                    </div>
+                </details>
+            </td>
+        </tr>
+    `;
+    
+    // अल्टरनेटिवली इन्सर्ट करना
+    row.insertAdjacentHTML('afterend', editDetailRowHtml);
+};
+
+// 🛠️ इसके साथ सिंक किया गया removeImageFromEdit फंक्शन 
+window.removeImageFromEdit = function(btnElement, index, key) {
+    console.log("Removing image at index:", index, "for key:", key);
+    
+    // 1. स्क्रीन से उस छोटे इमेज बॉक्स को तुरंत गायब (Remove) करें
+    const imageBox = btnElement.closest('.iframe-box') || btnElement.parentElement;
+    if (imageBox) {
+        imageBox.style.transition = "all 0.2s ease";
+        imageBox.style.opacity = "0";
+        setTimeout(() => {
+            imageBox.remove();
+            
+            // अगर सारी इमेज डिलीट हो गई हैं तो "No bills attached" टेक्स्ट दिखाएं
+            const container = document.getElementById(`edit-preview-container-${key}`);
+            if (container && container.children.length === 0) {
+                container.innerHTML = `<span id="no-docs-text-${key}" style="font-size:11px; color:#999;">No bills attached</span>`;
+            }
+        }, 200);
+    }
+    
+    // 2. ⚠️ सबसे महत्वपूर्ण: एरे से इस इमेज के लिंक को हटाएँ (ताकि सेव करने पर यह डेटाबेस से भी हट जाए)
+    if(key && window.editBillLinksCache[key]) {
+        // एरे में उस इंडेक्स वाले लिंक को 'null' या खाली कर देते हैं, या सीधे डिलीट कर देते हैं
+        window.editBillLinksCache[key].splice(index, 1);
+    }
+};
+
+
+
+
+
+window.saveInlineEdit = async function(rowId) {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+
+    const key = row.dataset.key;
+    const branch = row.dataset.branch;
+    const oldData = cacheRowData[rowId];
+
+    if (!oldData) {
+        console.error("Old row data not found:", rowId);
+        return;
+    }
+
+    // 🛠️ DOM से इनपुट एलिमेंट्स को सुरक्षित तरीके से पढ़ना (जो दोनों रोज़ में फैले हैं)
+    const types = row.querySelectorAll(`.edit-type-${key}`);
+    const accounts = row.querySelectorAll(`.edit-acc-${key}`);
+    const amounts = row.querySelectorAll(`.edit-amt-${key}`);
+
+    // नीचे वाली एडिट-डिटेल रो से इनपुट ढूंढने के लिए document.getElementById का इस्तेमाल किया
+    const fileInput = document.getElementById(`edit-file-${key}`);
+    const statusDiv = document.getElementById(`edit-status-${key}`);
+    const saveBtn = document.getElementById(`save-btn-${key}`);
+
+    const files = fileInput ? fileInput.files : [];
+
+    const voucherInput = document.getElementById(`edit-vouch-${key}`);
+    const dateInput = document.getElementById(`edit-date-${key}`);
+    const narrInput = document.getElementById(`edit-narr-${key}`);
+
+    const voucherNo = voucherInput ? voucherInput.value.trim() : (oldData.voucher_no || "");
+    const editDate = dateInput ? dateInput.value : (oldData.date || "");
+    const narration = narrInput ? narrInput.value.trim() : (oldData.narration || "");
+
+    // =====================================================
+    // Entries Processing
+    // =====================================================
+    const updatedEntries = [];
+    let totalDr = 0;
+    let totalCr = 0;
+
+    for (let i = 0; i < types.length; i++) {
+        const amt = parseFloat(amounts[i]?.value) || 0;
+        const account = accounts[i]?.value.trim() || "";
+        const type = types[i]?.value || "Dr";
+
+        if (type === "Dr") {
+            totalDr += amt;
+        } else {
+            totalCr += amt;
+        }
+
+        updatedEntries.push({
+            type: type,
+            account: account,
+            amount: amt.toFixed(2)
+        });
+    }
+
+    // =====================================================
+    // Debit / Credit validation
+    // =====================================================
+    if (totalDr.toFixed(2) !== totalCr.toFixed(2)) {
+        alert(
+            "Mismatch Error:\n\n" +
+            "Total Debit: " + totalDr.toFixed(2) +
+            "\nTotal Credit: " + totalCr.toFixed(2)
+        );
+        return;
+    }
+
+    // =====================================================
+    // Save button protection
+    // =====================================================
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Saving...";
+    }
+
+    let localBase64Array = [];
+
+    // =====================================================
+    // New files compression (WhatsApp style)
+        // =====================================================
+    // New files compression (WhatsApp style)
+    // =====================================================
+    if (files && files.length > 0) {
+        if (statusDiv) {
+            statusDiv.innerHTML = "WhatsApp स्टाइल कंप्रेशन चल रहा है...";
+        }
+
+        try {
+            for (let i = 0; i < files.length; i++) {
+                const compressedData = await convertInlineFileToBase64(files[i]);
+                // 🛠️ सुरक्षा: अगर यह इमेज पहले से एरे में नहीं है, तभी पुश करें
+                if (!localBase64Array.includes(compressedData)) {
+                    localBase64Array.push(compressedData);
+                }
+            }
+        } catch (err) {
+            console.error("File compression error:", err);
+            alert("फाइल प्रोसेस करने में एरर आया: " + err.message);
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = "Save";
+            }
+            return;
+        }
+    }
+
+    // 🛠️ लाइव कैमरा से खींची गई फोटो का सुरक्षित और यूनीक चेक
+    const camImg = document.getElementById(`cam-img-${key}`);
+    const camPreview = document.getElementById(`cam-preview-container-${key}`);
+    if (camImg && camPreview && camPreview.style.display !== "none" && camImg.src.startsWith("data:image")) {
+        // चेक करें कि क्या कैमरे वाली फोटो ऑलरेडी फाइल इनपुट के जरिए तो नहीं आ चुकी है
+        if (!localBase64Array.includes(camImg.src)) {
+            localBase64Array.push(camImg.src);
+        }
+    }
+
+    // =====================================================
+    // Existing + New bill links (Final Duplicate Filter)
+    // =====================================================
+    const remainingLinks = window.editBillLinksCache[key] || [];
+    
+    // 🛠️ यहाँ हम Set का उपयोग कर रहे हैं ताकि remainingLinks और newLinks में 
+    // कोई भी डेटा डुप्लीकेट हो तो वह आटोमेटिकली रिमूव (De-duplicate) हो जाए।
+    const combinedLinks = Array.from(new Set(remainingLinks.concat(localBase64Array)));
+
+
+    // =====================================================
+    // Firebase Update
+    // =====================================================
+    try {
+        await update(
+            ref(db, `transactions/${branch}/${key}`),
+            {
+                txn_id: oldData.txn_id,
+                voucher_no: voucherNo,
+                date: editDate,
+                entries: updatedEntries,
+                narration: narration,
+                billLinks: combinedLinks,
+                timestamp: oldData.timestamp || Date.now()
+            }
+        );
+
+        // =================================================
+        // Success Actions
+        // =================================================
+        if (statusDiv) {
+            statusDiv.innerHTML = "<span style='color:green;'>✓ Saved Successfully!</span>";
+        }
+
+        // Cache साफ करें
+        delete window.editBillLinksCache[key];
+
+        // Local cache update
+        cacheRowData[rowId].billLinks = combinedLinks;
+        cacheRowData[rowId].voucher_no = voucherNo;
+        cacheRowData[rowId].date = editDate;
+        cacheRowData[rowId].entries = updatedEntries;
+        cacheRowData[rowId].narration = narration;
+
+        setTimeout(() => {
+            // 🛠️ क्लीनअप: नीचे खुली हुई अस्थायी एडिट-डिटेल रो को DOM से हटाएँ
+            const currentEditDetailRow = document.getElementById(`edit-detail-${rowId}`);
+            if (currentEditDetailRow) {
+                currentEditDetailRow.remove();
+            }
+
+            // वापस स्टैंडर्ड व्यू में रेंडर करें
+            if (typeof renderRowStandard === "function") {
+                renderRowStandard(row, cacheRowData[rowId]);
+            } else {
+                location.reload();
+            }
+        }, 800);
+
+    } catch (err) {
+        console.error("Firebase update error:", err);
+        alert("Failed to update entry:\n" + err.message);
+
+        if (statusDiv) {
+            statusDiv.innerHTML = "<span style='color:red;'>सेव फेल हुआ!</span>";
+        }
+
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Save";
+        }
+    }
+};
+
+
+
+window.triggerDelete = async function(rowId) {
+    if(confirm("Delete this Tally multi-split voucher?")) {
+        const row = document.getElementById(rowId);
+        if (!row) return;
+
+        // 1. Firebase डेटाबेस से एंट्री डिलीट करें
+        await remove(ref(db, `transactions/${row.dataset.branch}/${row.dataset.key}`));
+
+        // 2. 🛠️ क्लीनअप: इसके नीचे खुली हुई किसी भी तरह की इमेज/डिटेल रो को स्क्रीन (DOM) से हटाएँ
+        const detailRow = document.getElementById(`detail-${rowId}`);
+        if (detailRow) detailRow.remove();
+
+        const editDetailRow = document.getElementById(`edit-detail-${rowId}`);
+        if (editDetailRow) editDetailRow.remove();
+
+        // 3. मुख्य डेटा रो को स्क्रीन से हटाएँ
+        row.remove();
+    }
+};
+    
+window.cancelInlineEdit = function(rowId) {
+    const row = document.getElementById(rowId);
+    const data = cacheRowData[rowId];
+    
+    if(row && data) {
+        // 1. 🛠️ क्लीनअप: कैंसिल दबाते ही नीचे खुली हुई एडिट-पैनल रो को स्क्रीन से तुरंत हटाएँ
+        const editDetailRow = document.getElementById(`edit-detail-${rowId}`);
+        if (editDetailRow) {
+            editDetailRow.remove();
+        }
+
+        // 2. मेमोरी से इस स्पेसिफिक एंट्री का एडिट-इमेज कैश भी साफ़ करें
+        if (row.dataset && row.dataset.key) {
+            delete window.editBillLinksCache[row.dataset.key];
+        }
+
+        // 3. रो को दोबारा नॉर्मल स्टैंडर्ड व्यू में रेंडर करें (यह अपने आप व्यू-मोड वाली इमेज रो बना देगा)
+        renderRowStandard(row, data);
+    }
+};
+
+// इनलाइन एडिट के लिए सुरक्षित कंप्रेशन इंजन (इसे अपने स्क्रिप्ट में नीचे जोड़ दें)
+function convertInlineFileToBase64(file) {
+    return new Promise(async (resolve, reject) => {
+        if (file.type.startsWith('image/')) {
+            const options = {
+                maxSizeMB: 2.5,          // 🌟 Quality badhane ke liye size limit ko 2.5 MB kiya (ताकि डिटेल्स मिस न हों)
+                maxWidthOrHeight: 1600,  // 🌟 Dimensions ko 1600 kiya (ताकि टेक्स्ट और इमेज बिल्कुल साफ और HD दिखें)
+                useWebWorker: true,
+                initialQuality: 0.95     // 🌟 Compression quality ko 95% par set kiya (ताकि original quality barkarar rahe)
+            };
+            try {
+                const compressedBlob = await imageCompression(file, options);
+                const reader = new FileReader();
+                reader.readAsDataURL(compressedBlob);
+                reader.onloadend = () => resolve(reader.result);
+            } catch (err) {
+                reject(err);
+            }
+        } else {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onloadend = () => resolve(reader.result);
+        }
+    });
+}
+
+window.triggerDelete = async function(rowId) {
+    if(confirm("Delete this Tally multi-split voucher?")) {
+        const row = document.getElementById(rowId);
+        if (!row) return;
+
+        // 1. Firebase डेटाबेस से एंट्री डिलीट करें
+        await remove(ref(db, `transactions/${row.dataset.branch}/${row.dataset.key}`));
+
+        // 2. 🛠️ आईडी फिक्स: rowId से 'row-' प्रीफिक्स हटाकर और लगाकर दोनों तरह से आईडी चेक करना
+        const cleanId = rowId.replace("row-", "");
+
+        // व्यू मोड वाली इमेज रो को स्क्रीन से हटाएँ (सभी संभावित आईडी कॉम्बिनेशन के साथ)
+        const detailRow1 = document.getElementById(`detail-${rowId}`);
+        if (detailRow1) detailRow1.remove();
+
+        const detailRow2 = document.getElementById(`detail-${cleanId}`);
+        if (detailRow2) detailRow2.remove();
+
+        // एडिट मोड वाली इमेज रो को स्क्रीन से हटाएँ
+        const editDetailRow1 = document.getElementById(`edit-detail-${rowId}`);
+        if (editDetailRow1) editDetailRow1.remove();
+
+        const editDetailRow2 = document.getElementById(`edit-detail-${cleanId}`);
+        if (editDetailRow2) editDetailRow2.remove();
+
+        // 3. मुख्य डेटा रो को स्क्रीन से हटाएँ
+        row.remove();
+        
+        console.log(`Successfully removed row and images for ID: ${rowId} from screen.`);
+    }
+};
+
+
+window.triggerPrint = function(rowId) {
+    const data = cacheRowData[rowId];
+    if(!data) return;
+    const printWindow = window.open('', '_blank');
+    
+    printWindow.document.write(`
+        <html><head><title>Print Voucher</title><style>body { font-family: sans-serif; padding: 30px; } .box { border: 2px solid #333; padding: 20px; border-radius: 8px; } table { width:100%; border-collapse:collapse; margin:15px 0; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }</style></head>
+        <body><div class="box"><h2 style="text-align:center;">JOURNAL VOUCHER RECEIPT</h2>
+        <p><b>Txn ID:</b> ${data.txn_id} | <b>Voucher No:</b> ${data.voucher_no} | <b>Date:</b> ${data.date}</p><hr/>
+        <table><thead><tr><th>Type</th><th>Account Ledger</th><th>Amount</th></tr></thead><tbody>
+        ${data.entries.map(e => `<tr><td><b>${e.type}</b></td><td>${e.account}</td><td>${e.amount}</td></tr>`).join('')}
+        </tbody></table>
+        <div style="background:#f5f5f5; padding:10px; border-left:4px solid #4f46e5; white-space: pre-line;"><b>Narration:</b><br>${data.narration}</div></div>
+        </body></html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+};
+
+function setupAccountRowSuggestions(inputElement, suggestionsElement) {
+    inputElement.addEventListener("input", () => {
+        const val = inputElement.value.toLowerCase();
+        suggestionsElement.innerHTML = "";
+        if(!val) { suggestionsElement.classList.add("hidden"); return; }
+        const filtered = Array.from(uniqueAccounts).filter(item => item.toLowerCase().includes(val));
+        filtered.forEach(item => {
+            const div = document.createElement("div"); div.className = "suggestion-item"; div.innerText = item;
+            div.addEventListener("click", () => { inputElement.value = item; suggestionsElement.classList.add("hidden"); });
+            suggestionsElement.appendChild(div);
+        });
+        suggestionsElement.classList.remove("hidden");
+    });
+}
+
+// Fixed scope capture variable reference error issue
+function setupNarrationSuggestions() {
+    const input = document.getElementById("narration");
+    const sugBox = document.getElementById("narrationSuggestions");
+    input.addEventListener("input", () => {
+        const val = input.value.toLowerCase(); sugBox.innerHTML = "";
+        if(!val) { sugBox.classList.add("hidden"); return; }
+        const filtered = Array.from(uniqueNarrations).filter(item => item.toLowerCase().includes(val));
+        filtered.forEach(item => {
+            const div = document.createElement("div"); div.className = "suggestion-item"; div.innerText = item;
+            div.addEventListener("click", () => { input.value = item; sugBox.classList.add("hidden"); });
+            sugBox.appendChild(div);
+        });
+        sugBox.classList.remove("hidden");
+    });
+}
+// यह आपके <script type="module"> के अंदर होना चाहिए
+
+let activeKey = null;
+let cameraStream = null;
+
+// फंक्शन को window ऑब्जेक्ट में असाइन करें ताकि HTML इसे एक्सेस कर सके
+window.openSafeCamera = async function(key) {
+    activeKey = key;
+    const modal = document.getElementById('cameraModal');
+    const video = document.getElementById('modalVideo');
+    
+    if (!modal || !video) {
+        console.error("Camera elements missing in DOM");
+        return;
+    }
+    
+    modal.style.display = 'flex';
+
+    const constraints = {
+        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+    };
+
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = cameraStream;
+    } catch (err) {
+        try {
+            cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = cameraStream;
+        } catch (e) {
+            alert("कैमरा शुरू नहीं हो सका: " + e.message);
+            window.closeCamera();
+        }
+    }
+}
+
+window.closeCamera = function() {
+    const modal = document.getElementById('cameraModal');
+    if (modal) modal.style.display = 'none';
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+    }
+}
+
+// यह इवेंट लिसनर मॉड्यूल के अंदर सीधे काम करेगा क्योंकि ये DOM से बंधा है
+document.addEventListener('DOMContentLoaded', () => {
+   
+    const closeBtn = document.getElementById('modalCloseBtn');
+    const snapBtn = document.getElementById('modalSnapBtn');
+
+    if (snapBtn) {
+        snapBtn.addEventListener('click', () => {
+            const video = document.getElementById('modalVideo');
+            const canvas = document.getElementById('modalCanvas');
+            const context = canvas.getContext('2d');
+            
+            if (!video || !canvas) return;
+
+            // कैमरे के साइज के अनुसार कैनवास सेट करें
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+            
+            // 📸 फोटो का बेस64 डेटा यूआरएल लें (क्वालिटी 0.8)
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+            if (activeKey && window.editBillLinksCache[activeKey]) {
+                // 🛠️ फिक्स 1: फ़ाइल इनपुट में ज़बरदस्ती फाइल लोड करने वाला पुराना लॉजिक हटा दिया (जिससे डुप्लीकेट होता था)
+                // अब हम सीधे कैश एरे में डेटा जोड़ते हैं
+                window.editBillLinksCache[activeKey].push(dataUrl);
+                const nextIndex = window.editBillLinksCache[activeKey].length - 1;
+
+                // 🛠️ फिक्स 2: "No bills attached" टेक्स्ट अगर मौजूद है, तो उसे हटाएँ
+                const noDocsText = document.getElementById(`no-docs-text-${activeKey}`);
+                if (noDocsText) noDocsText.remove();
+
+                // 🛠️ फिक्स 3: प्रीव्यू कंटेनर के अंदर तुरंत डिलीट बटन के साथ नया थंबनेल बॉक्स लाइव जोड़ें
+                const previewContainer = document.getElementById(`edit-preview-container-${activeKey}`);
+                if (previewContainer) {
+                    const newImgBoxHtml = `
+                        <div id="edit-img-box-${activeKey}-${nextIndex}" class="iframe-box" style="position:relative; width:90px; padding:3px; background:#fff3cd; border:1px solid #ffeba0; border-radius:4px;">
+                            <button type="button" onclick="window.removeImageFromEdit(this, ${nextIndex}, '${activeKey}')" style="position:absolute; top:-4px; right:-4px; background:red; color:white; border:none; border-radius:50%; width:18px; height:18px; font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:bold; z-index:10;">×</button>
+                            <img src="${dataUrl}" style="width:100%; height:60px; object-fit:contain; border-radius:3px;">
+                        </div>`;
+                    previewContainer.insertAdjacentHTML('beforeend', newImgBoxHtml);
+                }
+            }
+
+            // कैमरा बंद करें
+            window.closeCamera();
+        });
+    }
+           
+    if(closeBtn) {
+        closeBtn.addEventListener('click', window.closeCamera);
+    }
+});
+
+
+
+
+
+</script>
+</body>
+</html>
