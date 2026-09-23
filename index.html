@@ -7,87 +7,150 @@
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
 
 <style>
+/* Core Styling Variables */
+:root {
+    --primary: #0f4c81;     /* Tally Corporate Blue */
+    --primary-light: #e6f0fa;
+    --success: #1b7f3e;     /* Accounting Green */
+    --danger: #d32f2f;      /* Crimson Alert */
+    --text-dark: #2c3e50;
+    --border-color: #ced4da;
+    --bg-light: #f4f6f9;
+}
 
-        :root {
-            --primary: #4f46e5;
-            --success: #16a34a;
-            --danger: #dc2626;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --text: #1e293b;
-        }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .container { max-width: 1300px; margin: 0 auto; }
-        .status { background: #dcfce7; color: #15803d; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-weight: 600; text-align: center; }
-        .card { background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .flex-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+/* Utilities */
+body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg-light); color: var(--text-dark); margin: 0; padding: 15px; }
+.container { max-width: 1200px; margin: 0 auto; }
+.card { background: white; padding: 22px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 1px; border: 1px solid #e2e8f0; }
+.bold-primary { font-weight: 700; color: var(--primary); }
+.text-center { text-align: center; }
+.status { background: #dcfce7; color: #15803d; padding: 10px; border-radius: 6px; margin-bottom: 1px; font-weight: 600; text-align: center; }
         
-        /* Toggle Switch */
-        .switch-container { display: flex; align-items: center; gap: 10px; font-weight: bold; }
-        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--primary); }
-        input:checked + .slider:before { transform: translateX(26px); }
+.text-right { text-align: right; }
+.mt-15 { margin-top: 15px; }
+.hidden { display: none !important; }
 
-        /* Multi-line Entry Form Grid */
-        .voucher-header { display: grid; grid-template-columns: 200px 200px 1fr; gap: 15px; margin-bottom: 20px; background: #f1f5f9; padding: 15px; border-radius: 8px; }
-        .entry-row { display: grid; grid-template-columns: 120px 1fr 200px 50px; gap: 10px; margin-bottom: 10px; align-items: center; position: relative; }
-        
-        label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-        .form-group { display: flex; flex-direction: column; position: relative; }
-        input, select, textarea { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box; }
-        textarea { resize: vertical; min-height: 60px; }
-        
-        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
-        button:disabled { opacity: 0.5; }
-        .btn-add-row { background: #0284c7; margin-bottom: 15px; padding: 6px 12px; font-size: 13px; }
-        .btn-remove-row { background: var(--danger); padding: 8px; font-size: 14px; height: 38px; }
-        
-        /* Tables */
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; text-align: left; }
-        th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; vertical-align: top; }
-        th { background: #f1f5f9; }
-        .btn-sm { padding: 5px 10px; font-size: 12px; margin-right: 5px; border: none; border-radius: 4px; color: white; cursor: pointer;}
+/* Flex Header & Premium Toggle Switch */
+.flex-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--primary-light); }
+.flex-header h3 { margin: 0; color: var(--primary); font-size: 18px; }
+
+.switch-container { display: flex; align-items: center; background: #edf2f7; padding: 6px 12px; border-radius: 30px; border: 1px solid #e2e8f0; }
+.switch-label { font-size: 13px; font-weight: 600; padding: 0 4px; }
+.switch { position: relative; display: inline-block; width: 46px; height: 24px; margin: 0 8px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: blue; transition: .3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 24px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+input:checked + .slider { background-color: orange; }
+input:checked + .slider:before { transform: translateX(22px); }
+
+/* Voucher Header & Forms */
+.voucher-header { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; background: var(--primary-light); padding: 12px; border-radius: 6px; }
+.form-group { flex: 1; min-width: 180px; display: flex; flex-direction: column; }
+.form-group label { font-size: 12px; font-weight: 700; color: #555; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 0.5px; }
+input, textarea, select,.btn-remove-row  { padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box; transition: border 0.2s; background: #fff; }
+input:focus, textarea:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(15,76,129,0.15); }
+
+/* Dynamic Entry Row Layout (Tally Classic) */
+.entries-grid-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+.entry-row { display: flex; gap: 10px; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px dashed #cbd5e1; align-items: center; animation: fadeIn 0.2s ease-in; }
+.entry-row select { width: 80px; font-weight: bold; color: var(--primary); }
+.entry-row input[type="text"] { flex: 2; }
+.entry-row input[type="number"] { flex: 1; text-align: right; font-weight: 600; }
+.btn-remove { background: none; border: none; cursor: pointer; font-size: 16px; padding: 5px; transition: transform 0.1s; }
+.btn-remove:hover { transform: scale(1.15); }
+.suggestions { position: relative; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 6px; max-height: 150px;width:auto;overflow-y: auto; z-index: 99; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .suggestion-item { padding: 8px 12px; cursor: pointer; color: #334155; }
+        .suggestion-item:hover { background: #f1f5f9; }
+/* Action Buttons */
+.btn-add-row { background: var(--primary-light); color: var(--primary); border: 1px solid rgba(15,76,129,0.3); padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; text-align: center; transition: all 0.2s; }
+.btn-add-row:hover { background: var(--primary); color: white; }
+ 
+
+
+.btn-submit { padding: 12px 35px; font-size: 15px; font-weight: bold; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 2px 4px rgba(27,127,62,0.2); }
+.btn-submit:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; box-shadow: none; }
+
+/* Totals Box */
+.totals-box { display: flex; align-items: center; justify-content: flex-end; gap: 15px; background: #2d3748; color: white; padding: 14px 20px; border-radius: 6px; font-weight: 600; margin-top: 20px; font-size: 15px; }
+.total-divider { color: #4a5568; }
+.text-dr { color: #4ade80; font-weight: 700; }
+.text-cr { color: #f87171; font-weight: 700; }
+.btn-sm { padding: 5px 10px; font-size: 12px; margin-right: 5px; border: none; border-radius: 4px; color: white; cursor: pointer;}
         .btn-edit { background: #eab308; }
         .btn-delete { background: var(--danger); }
         .btn-print { background: #64748b; }
         .btn-save { background: var(--success); }
         .btn-cancel { background: #94a3b8; }
-        
-        /* Autocomplete Suggestions */
-        .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 6px; max-height: 150px; overflow-y: auto; z-index: 99; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .suggestion-item { padding: 8px 12px; cursor: pointer; color: #334155; }
-        .suggestion-item:hover { background: #f1f5f9; }
-        
-        .hidden { display: none; }
-        .table-title { font-size: 18px; font-weight: bold; margin-top: 0; color: var(--primary); }
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+.error-msg { color: #fca5a5; font-size: 13px; margin-left: 15px; font-weight: normal; }
+.badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
         .badge-dr { background: #dbeafe; color: #1e40af; }
         .badge-cr { background: #fee2e2; color: #991b1b; }
-        
-        .totals-box { text-align: right; margin-top: 10px; font-weight: bold; font-size: 15px; padding-right: 60px; }
-        .error-msg { color: var(--danger); font-size: 13px; font-weight: bold; margin-top: 5px; }
+/* Filter Container Styling */
+.filter-container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 1px; padding: 15px; background: white; border-radius: 8px; border: 1px solid var(--border-color); }
+.filter-inputs, .filter-actions { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+.filter-container button { padding: 8px 16px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; transition: opacity 0.2s; }
+.filter-container button:hover { opacity: 0.9; }
+.btn-filter { background: var(--success); }
+.btn-tab { background: var(--primary); }
+
+/* Premium Tally Tables */
+.table-header-bar { padding: 10px 15px; border-radius: 6px 6px 0 0; color: white; font-weight: bold; margin-bottom: -10px; }
+.h-natwa { background: #334155; }
+.h-basahi { background: #475569; }
+.table-title { margin: 0; font-size: 15px; letter-spacing: 0.5px; }
+.table-responsive { width: 100%; overflow-x: auto; border-radius: 0 0 6px 6px; border: 1px solid var(--border-color); border-top: none; }
+.tally-table { width: 100%; border-collapse: collapse; min-width: 750px; background: white; }
+.tally-table th, .tally-table td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; font-size: 13.5px; text-align: left; }
+.tally-table th { background: #f8fafc; color: #475569; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; border-bottom: 2px solid #cbd5e1; }
+.tally-table tbody tr:hover { background-color: #f1f5f9; }
+
+/* Camera Modal Design */
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); z-index: 99999; justify-content: center; align-items: center; padding: 20px; }
+.modal-content { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); text-align: center; }
+.modal-video { width: 100%; max-width: 400px; border-radius: 8px; background: #000; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+.modal-buttons { margin-top: 15px; display: flex; justify-content: center; gap: 10px; }
+.modal-buttons button { padding: 10px 22px; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
+.btn-snap { background: var(--success); }
+.btn-close { background: var(--danger); }
+
+/* Keyframes & Mobile Responsiveness */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 768px) {
+    .filter-container, .filter-inputs, .filter-actions { flex-direction: column; align-items: stretch;  }
+    .voucher-header { flex-direction: column; gap: 10px; }
+	 /* Entry Row Grid changes to stacked layout with remove button handled neatly */
+    .entry-row { display:grid;grid-template-columns: 1fr; gap: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 15px; margin-bottom: 15px; }
+    .entry-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .btn-remove-row { width: 100%; height: auto; text-align: center; }
+    
+    .totals-box { flex-direction: column; text-align: center; align-items: center; gap: 5px; }
+    .total-divider { display: none; }
+    .flex-header { flex-direction: column; gap: 15px; text-align: center; }
+}
+
+
+
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>⚡ Tally-Style Multi-Line Ledger Dashboard</h2>
+
     <div id="authStatus" class="status">Connecting securely...</div>
 
     <!-- MAIN CONSOLIDATED INPUT FORM -->
     <div class="card">
         <div class="flex-header">
-            <h3>📝 New Multi-Line Journal Voucher</h3>
+            <h3> New Multi-Line Journal Voucher</h3>
+            <!-- सुधरा हुआ आधुनिक स्विच -->
             <div class="switch-container">
-                <span>🏠 Natwa</span>
+                <span class="switch-label">  Natwa</span>
                 <label class="switch">
                     <input type="checkbox" id="tableToggle">
                     <span class="slider"></span>
                 </label>
-                <span>🏢 Basahi</span>
+                <span class="switch-label"> Basahi</span>
             </div>
         </div>
 
@@ -96,7 +159,7 @@
             <div class="voucher-header">
                 <div class="form-group">
                     <label>Voucher Auto No</label>
-                    <input type="text" id="vouchNo" readonly style="font-weight: bold; color: var(--primary);">
+                    <input type="text" id="vouchNo" readonly class="bold-primary text-center">
                 </div>
                 <div class="form-group">
                     <label>Date</label>
@@ -104,96 +167,117 @@
                 </div>
             </div>
 
-            <!-- Double Entry Multiple Accounts Rows Container -->
-            <div id="entriesContainer"></div>
+            <!-- Double Entry Rows - (यह कंटेनर CSS से ग्रिड लेआउट में दिखेगा) -->
+            <div id="entriesContainer" class="entries-grid-container">
+                <!-- Example of a beautiful structured row inside JavaScript dynamically:
+                <div class="entry-row">
+                    <select class="entry-type"><option>Dr</option><option>Cr</option></select>
+                    <input type="text" placeholder="Account Name">
+                    <input type="number" placeholder="Amount ( )">
+                    <button class="btn-remove">❌</button>
+                </div> 
+                -->
+            </div>
 
-            <button type="button" class="btn-add-row" id="addAccRowBtn">➕ Add Row (Dr/Cr)</button>
+            <button type="button" class="btn-add-row" id="addAccRowBtn"> Add Row (Dr/Cr)</button>
 
             <!-- Multi-line Narration Field -->
-            <div class="form-group" style="margin-top: 15px;">
-                <label>Multi-line Narration / Remarks</label>
+            <div class="form-group mt-15">
+                <label> Remarks</label>
                 <textarea id="narration" autocomplete="off" placeholder="Write comprehensive multiline details..." required></textarea>
                 <div id="narrationSuggestions" class="suggestions hidden"></div>
             </div>
 
             <!-- Totals & Validation Verification Block -->
             <div class="totals-box">
-                Total Dr: ₹<span id="totalDrLabel">0.00</span> | Total Cr: ₹<span id="totalCrLabel">0.00</span>
+                <div class="total-item">Total Dr: <span id="totalDrLabel" class="text-dr"> 0.00</span></div>
+                <div class="total-divider">|</div>
+                <div class="total-item">Total Cr: <span id="totalCrLabel" class="text-cr"> 0.00</span></div>
                 <div id="validationError" class="error-msg"></div>
             </div>
 
-            <div style="text-align: right; margin-top: 15px;">
-                <button type="submit" id="submitBtn" disabled style="padding: 12px 30px; font-size: 15px;">Save Voucher Entry</button>
+            <div class="text-right mt-15">
+                <button type="submit" id="submitBtn" disabled class="btn-submit">Save Voucher Entry</button>
             </div>
         </form>
-        <div id="speedLog" style="margin-top:10px; font-size:13px; color:#666;"></div>
+        <div id="speedLog" class="speed-log"></div>
     </div>
-<!-- तारीख फ़िल्टर बार और न्यू टैब बटन -->
-<div class="filter-container" style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px; padding: 10px; background: #f5f5f5; border-radius: 6px;">
-    <div>
-        <label style="font-weight: bold; font-size: 13px;">From Date: </label>
-        <input type="date" id="filterFromDate">
-    </div>
-    <div>
-        <label style="font-weight: bold; font-size: 13px;">To Date: </label>
-        <input type="date" id="filterToDate">
-    </div>
-    <!-- Filter बटन दबाते ही डेटाबेस से डेटा फेच होगा -->
-    <button onclick="applyDateFilterAndListen()" style="padding: 6px 12px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">
-        🔍 Filter Data
-    </button>
-    <button onclick="openTableInNewTab()" style="margin-left: auto; padding: 6px 12px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">
-        🔗 Open in New Tab
-    </button>
-</div>
 
-
+    <!-- तारीख फ़िल्टर बार और न्यू टैब बटन -->
+    <div class="filter-container">
+        <div class="filter-inputs">
+            <div>
+                <label class="filter-label">From Date: </label>
+                <input type="date" id="filterFromDate">
+            </div>
+            <div>
+                <label class="filter-label">To Date: </label>
+                <input type="date" id="filterToDate">
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button onclick="applyDateFilterAndListen()" class="btn-filter">🔍 Filter Data</button>
+            <button onclick="openTableInNewTab()" class="btn-tab">🔗 Open in New Tab</button>
+        </div>
+    </div>
 
     <!-- SEPARATE DASHBOARD LEDGER TABLES -->
     <div class="card" id="natwaCard">
-        <p class="table-title">🏠 Natwa Ledger Records</p>
-        <table>
-            <thead>
-                <tr>
-                    <th>Txn ID</th>
-                    <th>Voucher No</th>
-                    <th>Date</th>
-                    <th>Accounts & Splits (Double Entry)</th>
-                    <th>Narration</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="natwaTableBody"></tbody>
-        </table>
+        <div class="table-header-bar h-natwa">
+            <p class="table-title">  Natwa Ledger Records</p>
+        </div>
+        <div class="table-responsive">
+            <table class="tally-table">
+                <thead>
+                    <tr>
+                        <th>Txn ID</th>
+                        <th>Voucher No</th>
+                        <th>Date</th>
+                        <th>Accounts & Splits (Double Entry)</th>
+                        <th>Narration</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="natwaTableBody"></tbody>
+            </table>
+        </div>
     </div>
 
     <div class="card" id="basahiCard">
-        <p class="table-title">🏢 Basahi Ledger Records</p>
-        <table>
-            <thead>
-                <tr>
-                    <th>Txn ID</th>
-                    <th>Voucher No</th>
-                    <th>Date</th>
-                    <th>Accounts & Splits (Double Entry)</th>
-                    <th>Narration</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="basahiTableBody"></tbody>
-        </table>
+        <div class="table-header-bar h-basahi">
+            <p class="table-title">Basahi Ledger Records</p>
+        </div>
+        <div class="table-responsive">
+            <table class="tally-table">
+                <thead>
+                    <tr>
+                        <th>Txn ID</th>
+                        <th>Voucher No</th>
+                        <th>Date</th>
+                        <th>Accounts & Splits (Double Entry)</th>
+                        <th>Narration</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="basahiTableBody"></tbody>
+            </table>
+        </div>
     </div>
 </div>
+
 <!-- कैमरा पॉपअप मोडल -->
-<div id="cameraModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:99999; justify-content:center; align-items:center; flex-direction:column;">
-    <video id="modalVideo" autoplay playsinline style="width:90%; max-width:400px; border-radius:8px; background:#000;"></video>
-    <br>
-    <div>
-        <button id="modalSnapBtn" style="padding:10px 20px; background:#28a745; color:white; border:none; border-radius:5px; font-size:14px; margin-right:10px;">Click Photo</button>
-        <button id="modalCloseBtn" style="padding:10px 20px; background:#dc3545; color:white; border:none; border-radius:5px; font-size:14px;">Close</button>
+<div id="cameraModal" class="modal">
+    <div class="modal-content">
+        <video id="modalVideo" autoplay playsinline class="modal-video"></video>
+        <div class="modal-buttons">
+            <button id="modalSnapBtn" class="btn-snap"> Click Photo</button>
+            <button id="modalCloseBtn" class="btn-close">XClose</button>
+        </div>
     </div>
-    <canvas id="modalCanvas" style="display:none;"></canvas>
+    <canvas id="modalCanvas" class="hidden"></canvas>
 </div>
+
+
 
 
 
@@ -261,7 +345,7 @@ signInAnonymously(auth);
 
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        document.getElementById("authStatus").innerText = "🔒 Secure Tally Multi-Line Engine Active";
+        document.getElementById("authStatus").innerText = " Secure Multi-Line Engine Active";
         if(submitBtn) submitBtn.disabled = false;
         setupNarrationSuggestions();
         initRealtimeListeners();
@@ -323,10 +407,10 @@ function addAccountRow(type = "Dr", accountName = "", amount = "") {
             <div class="suggestions hidden"></div>
         </div>
         <div>
-            <input type="number" step="0.01" class="row-amount" value="${amount}" placeholder="Amount ₹" oninput="window.calculateFormTotals()" required>
+            <input type="number" step="0.01" class="row-amount" value="${amount}" placeholder="Amount  " oninput="window.calculateFormTotals()" required>
         </div>
         <div>
-            <button type="button" class="btn-remove-row" onclick="window.removeRow('${rowId}')">❌</button>
+            <button type="button" class="btn-remove-row" onclick="window.removeRow('${rowId}')" style="colour:red">X</button>
         </div>
     `;
     entriesContainer.appendChild(div);
@@ -434,7 +518,7 @@ function applyDateFilterAndListen() {
     const toggleInput = document.getElementById("tableToggle");
     if (!toggleInput) return;
     
-    // HTML के अनुसार: Checked = Basahi (🏢), Unchecked = Natwa (🏠)
+    // HTML के अनुसार: Checked = Basahi (🏢), Unchecked = Natwa ( )
     const activeBranch = toggleInput.checked ? 'basahi' : 'natwa'; 
     const inactiveBranch = toggleInput.checked ? 'natwa' : 'basahi';
 
@@ -561,7 +645,7 @@ function renderRowStandard(row, data) {
     let entriesHtml = `<div style="display:flex; flex-direction:column; gap:4px;">`;
     if(data.entries) {
         data.entries.slice().reverse().forEach(e => {
-            entriesHtml += `<span><span class="badge badge-${e.type.toLowerCase()}">${e.type}</span> <b>${e.account}</b>: ₹${e.amount}</span>`;
+            entriesHtml += `<span><span class="badge badge-${e.type.toLowerCase()}">${e.type}</span> <b>${e.account}</b>:  ${e.amount}</span>`;
         });
     }
     entriesHtml += `</div>`;
