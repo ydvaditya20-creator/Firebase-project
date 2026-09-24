@@ -962,35 +962,82 @@ function setupNarrationSuggestions() {
 }
 // यह आपके <script type="module"> के अंदर होना चाहिए
 
-let cameraStream=null;
-window.openEditCamera=async function(){
-    const modal=document.getElementById("cameraModal"),video=document.getElementById("modalVideo");
-    if(!editingKey)return;
-    modal.style.display="flex";
-    try{
-        cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:{ideal:1280},height:{ideal:720}},audio:false});
-        video.srcObject=cameraStream;
-    }catch(e){
-        try{cameraStream=await navigator.mediaDevices.getUserMedia({video:true});video.srcObject=cameraStream}
-        catch(err){alert("कैमरा शुरू नहीं हो सका: "+err.message);closeCamera()}
+let cameraStream = null;
+
+window.openEditCamera = async function() {
+    if (!editingKey) return;
+    
+    const modal = document.getElementById("cameraModal");
+    const video = document.getElementById("modalVideo");
+
+    // 1. Pehle hi camera request bhej do taaki time bache (Parallel processing)
+    const cameraPromise = navigator.mediaDevices.getUserMedia({
+        video: { 
+            facingMode: "environment", 
+            width: { ideal: 1024 },  // Thoda optimized size jo fast load ho
+            height: { ideal: 768 } 
+        },
+        audio: false
+    }).catch(() => {
+        // Fallback agar back camera fail ho jaye
+        return navigator.mediaDevices.getUserMedia({ video: true });
+    });
+
+    try {
+        // 2. Turant modal display karo bina camera ka wait kiye
+        modal.style.display = "flex";
+        
+        // 3. Jaise hi stream ready ho, video mein load kar do
+        cameraStream = await cameraPromise;
+        video.srcObject = cameraStream;
+        
+        // Video ko instantly play karne ke liye (kuch mobile par lag rokta hai)
+        video.setAttribute("playsinline", true);
+        await video.play().catch(e => console.log("Auto-play prevented", e));
+        
+    } catch(err) {
+        alert("कैमरा शुरू नहीं हो सका: " + err.message);
+        closeCamera();
     }
 };
-function closeCamera(){
-    document.getElementById("cameraModal").style.display="none";
-    if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null}
+
+function closeCamera() {
+    const modal = document.getElementById("cameraModal");
+    if(modal) modal.style.display = "none";
+    
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(t => t.stop());
+        cameraStream = null;
+    }
+    
+    // Video elements ko saaf kar do taaki agli baar fresh start ho
+    const video = document.getElementById("modalVideo");
+    if(video) video.srcObject = null;
 }
-document.getElementById("modalCloseBtn").addEventListener("click",closeCamera);
-document.getElementById("entryModal").addEventListener("click",e=>{
-    if(e.target.id==="entryModal" && !editingKey) closeEntryForm();
+
+document.getElementById("modalCloseBtn").addEventListener("click", closeCamera);
+
+document.getElementById("entryModal").addEventListener("click", e => {
+    if (e.target.id === "entryModal" && !editingKey) closeEntryForm();
 });
-document.getElementById("modalSnapBtn").addEventListener("click",()=>{
-    const video=document.getElementById("modalVideo"),canvas=document.getElementById("modalCanvas");
-    if(!video.videoWidth)return;
-    canvas.width=video.videoWidth;canvas.height=video.videoHeight;
-    canvas.getContext("2d").drawImage(video,0,0,canvas.width,canvas.height);
-    editBillLinks.push(canvas.toDataURL("image/jpeg",.8));
-    renderEditFiles();closeCamera();
+
+document.getElementById("modalSnapBtn").addEventListener("click", () => {
+    const video = document.getElementById("modalVideo");
+    const canvas = document.getElementById("modalCanvas");
+    if (!video || !video.videoWidth) return;
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Photo save karo aur render karke close karo
+    editBillLinks.push(canvas.toDataURL("image/jpeg", 0.8));
+    renderEditFiles();
+    closeCamera();
 });
+
 </script>
 </body>
 </html>
