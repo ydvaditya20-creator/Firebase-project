@@ -558,6 +558,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // 2. फ़िल्टर और टेबल शो/हाइड करने का मुख्य फंक्शन
+
 function applyDateFilterAndListen() {
     const fromVal = document.getElementById("filterFromDate").value;
     const toVal = document.getElementById("filterToDate").value;
@@ -567,19 +568,13 @@ function applyDateFilterAndListen() {
     const toggleInput = document.getElementById("tableToggle");
     if (!toggleInput) return;
     
-    // HTML के अनुसार: Checked = Basahi (🏢), Unchecked = Natwa ( )
     const activeBranch = toggleInput.checked ? 'basahi' : 'natwa'; 
     const inactiveBranch = toggleInput.checked ? 'natwa' : 'basahi';
 
-    // 🛠️ विजुअल फिक्स: एक्टिव टेबल को दिखाएं और इनएक्टिव टेबल को छुपाएं
-    // (नोट: यदि आपकी पूरी <table> की ID अलग है, तो आप 'TableBody' की जगह अपनी मुख्य Table ID का उपयोग भी कर सकते हैं)
     const activeTable = document.getElementById(`${activeBranch}TableBody`);
     const inactiveTable = document.getElementById(`${inactiveBranch}TableBody`);
     
-    // अगर आप पूरी Table को हाइड करना चाहते हैं, तो सुनिश्चित करें कि आपकी टेबल या उसके पैरेंट कंटेनर पर ये IDs हों।
-    // यहाँ हम इनके बॉडी कंटेनर को मैनेज कर रहे हैं:
     if (activeTable) {
-        // अगर आपने पूरे table एलिमेंट को हाइड करना है, तो .closest('table') का उपयोग करें
         const mainTable = activeTable.closest('table');
         if (mainTable) mainTable.style.display = ""; 
     }
@@ -588,23 +583,42 @@ function applyDateFilterAndListen() {
         if (mainTable) mainTable.style.display = "none";
     }
 
-    // A. इनएक्टिव ब्रांच का Firebase कनेक्शन तुरंत कट (Off) करें
+    // A. इनएक्टिव ब्रांच का कनेक्शन बंद करें
     if (activeListeners[inactiveBranch]) {
         activeListeners[inactiveBranch](); 
         delete activeListeners[inactiveBranch];
     }
 
-    // B. एक्टिव टेबल का पुराना डेटा साफ करें ताकि नया फ्रेश डेटा लोड हो सके
+    // B. एक्टिव टेबल का पुराना डेटा साफ करें
     if (activeTable) activeTable.innerHTML = ""; 
 
-    // C. एक्टिव ब्रांच का कोई पुराना लिसनर चल रहा है, तो उसे भी बंद करें
+    // C. एक्टिव ब्रांच का पुराना लिसनर बंद करें
     if (activeListeners[activeBranch]) {
         activeListeners[activeBranch]();
     }
 
-    console.log(`Switched to: ${activeBranch}. Fetching data from ${fromVal} to ${toVal}`);
+    console.log(`Switched to: ${activeBranch}. Fetching grid data from ${fromVal} to ${toVal}`);
 
-    // D. 🚀 Firebase से रेंज क्वेरी
+    // ==========================================
+    // 1. 🚀 केवल सुझावों (Suggestions) के लिए - पूरा डेटा (बिना डेट फ़िल्टर)
+    // ==========================================
+    const fullBranchRef = ref(db, `transactions/${activeBranch}`);
+    
+    const unsubscribeSuggestions = onChildAdded(fullBranchRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        // सुझावों के लिए यूनिक अकाउंट और नरेशन को बिना डेट रेंज के स्टोर करें
+        if (data.entries) data.entries.forEach(e => uniqueAccounts.add(e.account));
+        if (data.narration) uniqueNarrations.add(data.narration);
+        
+        // यहाँ आप अपना autocomplete/suggestion रीफ्रेस करने का फंक्शन भी कॉल कर सकते हैं
+        // updateAutocompleteDropdowns(); 
+    });
+
+    // ==========================================
+    // 2. 📊 केवल टेबल ग्रिड के लिए - डेट रेंज क्वेरी
+    // ==========================================
     const branchRef = query(
         ref(db, `transactions/${activeBranch}`),
         orderByChild('date'),
@@ -613,57 +627,54 @@ function applyDateFilterAndListen() {
     );
 
     const unsubscribeAdded = onChildAdded(branchRef, (snapshot) => {
-    const data = snapshot.val();
-    if(!data) return;
+        const data = snapshot.val();
+        if(!data) return;
 
-    const vNum = parseVoucherNumber(data.voucher_no);
-    if(activeBranch === 'natwa' && vNum > maxNatwaVoucher) maxNatwaVoucher = vNum;
-    if(activeBranch === 'basahi' && vNum > maxBasahiVoucher) maxBasahiVoucher = vNum;
+        const vNum = parseVoucherNumber(data.voucher_no);
+        if(activeBranch === 'natwa' && vNum > maxNatwaVoucher) maxNatwaVoucher = vNum;
+        if(activeBranch === 'basahi' && vNum > maxBasahiVoucher) maxBasahiVoucher = vNum;
 
-    if(data.entries) data.entries.forEach(e => uniqueAccounts.add(e.account));
-    uniqueNarrations.add(data.narration);
+        // ध्यान दें: सुझावों वाला लॉजिक यहाँ से हटाकर ऊपर 'fullBranchRef' में डाल दिया गया है
 
-    const row = document.createElement("tr");
-    row.id = `row-${snapshot.key}`;
-    row.dataset.key = snapshot.key;
-    row.dataset.branch = activeBranch;
+        const row = document.createElement("tr");
+        row.id = `row-${snapshot.key}`;
+        row.dataset.key = snapshot.key;
+        row.dataset.branch = activeBranch;
 
-    renderRowStandard(row, data);
-
-    if(activeTable) {
-        activeTable.insertBefore(row, activeTable.firstChild);
-    }
-});
-
-const unsubscribeChanged = onChildChanged(branchRef, (snapshot) => {
-    const data = snapshot.val();
-    if (!data) return;
-
-    const row = document.getElementById(`row-${snapshot.key}`);
-
-    if (row && row.dataset.key !== editingKey) {
         renderRowStandard(row, data);
-    }
-});
 
-// 🔥 DELETE होने पर table से row तुरंत हटेगी
-const unsubscribeRemoved = onChildRemoved(branchRef, (snapshot) => {
-    const row = document.getElementById(`row-${snapshot.key}`);
+        if(activeTable) {
+            activeTable.insertBefore(row, activeTable.firstChild);
+        }
+    });
 
-    if(row) {
-        row.remove();
-    }
+    const unsubscribeChanged = onChildChanged(branchRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
 
-    // local cache भी हटाएँ
-    delete cacheRowData[`row-${snapshot.key}`];
-    delete cacheRowData[snapshot.key];
-});
+        const row = document.getElementById(`row-${snapshot.key}`);
+        if (row && row.dataset.key !== editingKey) {
+            renderRowStandard(row, data);
+        }
+    });
 
-activeListeners[activeBranch] = () => {
-    unsubscribeAdded();
-    unsubscribeChanged();
-    unsubscribeRemoved();
-};}
+    const unsubscribeRemoved = onChildRemoved(branchRef, (snapshot) => {
+        const row = document.getElementById(`row-${snapshot.key}`);
+        if(row) {
+            row.remove();
+        }
+        delete cacheRowData[`row-${snapshot.key}`];
+        delete cacheRowData[snapshot.key];
+    });
+
+    // सभी अनसब्सक्राइब फंक्शन्स को एक्टिव लिसनर्स में डालें (सुझाव वाले लिसनर सहित)
+    activeListeners[activeBranch] = () => {
+        unsubscribeSuggestions(); // सुझावों का लिसनर बंद करें
+        unsubscribeAdded();
+        unsubscribeChanged();
+        unsubscribeRemoved();
+    };
+}
 
 // ग्लोबल स्कोप में फंक्शंस डालें
 window.applyDateFilterAndListen = applyDateFilterAndListen;
