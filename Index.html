@@ -3,88 +3,226 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚡  Dashboard</title>
-    <style>
-        :root {
-            --primary: #4f46e5;
-            --success: #16a34a;
-            --danger: #dc2626;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --text: #1e293b;
-        }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .container { max-width: 1300px; margin: 0 auto; }
-        .status { background: #dcfce7; color: #15803d; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-weight: 600; text-align: center; }
-        .card { background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .flex-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        
-        /* Toggle Switch */
-        .switch-container { display: flex; align-items: center; gap: 10px; font-weight: bold; }
-        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--primary); }
-        input:checked + .slider:before { transform: translateX(26px); }
+    <title>⚡ Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
 
-        /* Multi-line Entry Form Grid */
-        .voucher-header { display: grid; grid-template-columns: 200px 200px 1fr; gap: 15px; margin-bottom: 20px; background: #f1f5f9; padding: 15px; border-radius: 8px; }
-        .entry-row { display: grid; grid-template-columns: 120px 1fr 200px 50px; gap: 10px; margin-bottom: 10px; align-items: center; position: relative; }
+<style>
+/* Core Styling Variables */
+:root {
+    --primary: #0f4c81;     /* Tally Corporate Blue */
+    --primary-light: #e6f0fa;
+    --success: #1b7f3e;     /* Accounting Green */
+    --danger: #d32f2f;      /* Crimson Alert */
+    --text-dark: #2c3e50;
+    --border-color: #ced4da;
+    --bg-light: #f4f6f9;
+}
+
+/* Utilities */
+body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg-light); color: var(--text-dark); margin: 0; padding: 0px; }
+.container { max-width: 1200px; margin: 0 auto; }
+.card { background: white; padding: 22px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 1px; border: 1px solid #e2e8f0; }
+.bold-primary { font-weight: 700; color: var(--primary); }
+.text-center { text-align: center; }
+.status { background: #dcfce7; color: #15803d; padding: 10px; border-radius: 6px; margin-bottom: 1px; font-weight: 600; text-align: center; }
         
-        label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-        .form-group { display: flex; flex-direction: column; position: relative; }
-        input, select, textarea { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box; }
-        textarea { resize: vertical; min-height: 60px; }
-        
-        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
-        button:disabled { opacity: 0.5; }
-        .btn-add-row { background: #0284c7; margin-bottom: 15px; padding: 6px 12px; font-size: 13px; }
-        .btn-remove-row { background: var(--danger); padding: 8px; font-size: 14px; height: 38px; }
-        
-        /* Tables */
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; text-align: left; }
-        th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; vertical-align: top; }
-        th { background: #f1f5f9; }
-        .btn-sm { padding: 5px 10px; font-size: 12px; margin-right: 5px; border: none; border-radius: 4px; color: white; cursor: pointer;}
+.text-right { text-align: right; }
+.mt-15 { margin-top: 15px; }
+.hidden { display: none !important; }
+
+/* Flex Header & Premium Toggle Switch */
+.flex-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--primary-light); }
+.flex-header h3 { margin: 0; color: var(--primary); font-size: 18px; }
+
+.switch-container { display: flex; align-items: center; background: #edf2f7; padding: 6px 12px; border-radius: 30px; border: 1px solid #e2e8f0; }
+.switch-label { font-size: 13px; font-weight: 600; padding: 0 4px; }
+.switch { position: relative; display: inline-block; width: 46px; height: 24px; margin: 0 8px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: blue; transition: .3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 24px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+input:checked + .slider { background-color: orange; }
+input:checked + .slider:before { transform: translateX(22px); }
+
+/* Voucher Header & Forms */
+.voucher-header { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; background: var(--primary-light); padding: 12px; border-radius: 6px; }
+.form-group { flex: 1; min-width: 180px; display: flex; flex-direction: column; }
+.form-group label { font-size: 12px; font-weight: 700; color: #555; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 0.5px; }
+input, textarea, select,.btn-remove-row  { padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box; transition: border 0.2s; background: #fff; }
+input:focus, textarea:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(15,76,129,0.15); }
+
+/* Dynamic Entry Row Layout (Tally Classic) */
+.entries-grid-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+.entry-row { display: flex; gap: 10px; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px dashed #cbd5e1; align-items: center; animation: fadeIn 0.2s ease-in; }
+.entry-row select { width: 80px; font-weight: bold; color: var(--primary); }
+.entry-row input[type="text"] { flex: 2; }
+.entry-row input[type="number"] { flex: 1; text-align: right; font-weight: 600; }
+.btn-remove { background: none; border: none; cursor: pointer; font-size: 16px; padding: 5px; transition: transform 0.1s; }
+.btn-remove:hover { transform: scale(1.15); }
+.suggestions { position: relative; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 6px; max-height: 150px;width:auto;overflow-y: auto; z-index: 99; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .suggestion-item { padding: 8px 12px; cursor: pointer; color: #334155; }
+        .suggestion-item:hover { background: #f1f5f9; }
+/* Action Buttons */
+.btn-add-row { background: var(--primary-light); color: var(--primary); border: 1px solid rgba(15,76,129,0.3); padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; text-align: center; transition: all 0.2s; }
+.btn-add-row:hover { background: var(--primary); color: white; }
+ 
+
+
+.btn-submit { padding: 12px 35px; font-size: 15px; font-weight: bold; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 2px 4px rgba(27,127,62,0.2); }
+.btn-submit:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; box-shadow: none; }
+
+/* Totals Box */
+.totals-box { display: flex; align-items: center; justify-content: flex-end; gap: 15px; background: #2d3748; color: white; padding: 14px 20px; border-radius: 6px; font-weight: 600; margin-top: 20px; font-size: 15px; }
+.total-divider { color: #4a5568; }
+.text-dr { color: #4ade80; font-weight: 700; }
+.text-cr { color: #f87171; font-weight: 700; }
+.btn-sm { padding: 5px 10px; font-size: 12px; margin-right: 5px; border: none; border-radius: 4px; color: white; cursor: pointer;}
         .btn-edit { background: #eab308; }
         .btn-delete { background: var(--danger); }
         .btn-print { background: #64748b; }
         .btn-save { background: var(--success); }
         .btn-cancel { background: #94a3b8; }
-        
-        /* Autocomplete Suggestions */
-        .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 6px; max-height: 150px; overflow-y: auto; z-index: 99; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .suggestion-item { padding: 8px 12px; cursor: pointer; color: #334155; }
-        .suggestion-item:hover { background: #f1f5f9; }
-        
-        .hidden { display: none; }
-        .table-title { font-size: 18px; font-weight: bold; margin-top: 0; color: var(--primary); }
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+.error-msg { color: #fca5a5; font-size: 13px; margin-left: 15px; font-weight: normal; }
+.badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
         .badge-dr { background: #dbeafe; color: #1e40af; }
         .badge-cr { background: #fee2e2; color: #991b1b; }
-        
-        .totals-box { text-align: right; margin-top: 10px; font-weight: bold; font-size: 15px; padding-right: 60px; }
-        .error-msg { color: var(--danger); font-size: 13px; font-weight: bold; margin-top: 5px; }
-    </style>
+/* Filter Container Styling */
+.filter-container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 1px; padding: 15px; background: white; border-radius: 8px; border: 1px solid var(--border-color); }
+.filter-inputs, .filter-actions { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+.filter-container button { padding: 8px 16px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; transition: opacity 0.2s; }
+.filter-container button:hover { opacity: 0.9; }
+.btn-filter { background: var(--success); }
+.btn-tab { background: var(--primary); }
+
+/* Premium Tally Tables */
+.table-header-bar { padding: 10px 15px; border-radius: 6px 6px 0 0; color: white; font-weight: bold; margin-bottom: -10px; }
+.h-natwa { background: #334155; }
+.h-basahi { background: #475569; }
+.table-title { margin: 0; font-size: 15px; letter-spacing: 0.5px; }
+.table-responsive { width: 100%; overflow-x: auto; border-radius: 0 0 6px 6px; border: 1px solid var(--border-color); border-top: none; }
+.tally-table { width: 100%; border-collapse: collapse; min-width: 750px; background: white; }
+.tally-table th, .tally-table td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; font-size: 13.5px; text-align: left; }
+.tally-table th { background: #f8fafc; color: #475569; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; border-bottom: 2px solid #cbd5e1; }
+.tally-table tbody tr:hover { background-color: #f1f5f9; }
+
+
+/* Entry Form Modal */
+.entry-modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.72);z-index:99998;padding:12px;overflow-y:auto}
+.entry-modal.show{display:flex;align-items:flex-start;justify-content:center}
+.entry-modal-box{width:min(760px,100%);max-height:calc(100vh - 24px);overflow-y:auto;background:#fff;border-radius:12px;box-shadow:0 20px 40px rgba(0,0,0,.3)}
+.entry-modal-head{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--primary);color:#fff}
+.entry-modal-head b{font-size:15px}
+.entry-modal-close{border:0;background:#fff;color:var(--danger);border-radius:6px;padding:5px 10px;font-weight:700;cursor:pointer}
+#entryModal .card{margin:0;border:0;border-radius:0;box-shadow:none;padding:14px}
+.edit-files{display:none;margin-top:12px;padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px}
+.edit-files.show{display:block}
+.edit-file-preview{display:flex;flex-wrap:wrap;gap:7px;margin:7px 0}
+.edit-file-box{position:relative;width:82px;padding:3px;background:#fff3cd;border:1px solid #ffeba0;border-radius:4px}
+.edit-file-box img,.edit-file-box iframe{width:100%;height:58px;object-fit:contain;border:0;border-radius:3px;background:#fff}
+.edit-file-remove{position:absolute;top:-5px;right:-5px;width:18px;height:18px;padding:0;border:0;border-radius:50%;background:red;color:#fff;cursor:pointer;font-weight:bold}
+.edit-mode #vouchNo{background:#fff}
+
+/* Camera Modal Design */
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); z-index: 99999; justify-content: center; align-items: center; padding: 20px; }
+.modal-content { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); text-align: center; }
+.modal-video { width: 100%; max-width: 400px; border-radius: 8px; background: #000; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+.modal-buttons { margin-top: 15px; display: flex; justify-content: center; gap: 10px; }
+.modal-buttons button { padding: 10px 22px; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
+.btn-snap { background: var(--success); }
+.btn-close { background: var(--danger); }
+
+/* Keyframes & Mobile Responsiveness */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 768px) {
+    .filter-container, .filter-inputs, .filter-actions { flex-direction: column; align-items: stretch;  }
+    .voucher-header { flex-direction: column; gap: 10px; }
+	 /* Entry Row Grid changes to stacked layout with remove button handled neatly */
+    .entry-row { display:grid;grid-template-columns: 1fr; gap: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 15px; margin-bottom: 15px; }
+    .entry-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .btn-remove-row { width: 100%; height: auto; text-align: center; }
+    
+    .totals-box { flex-direction: column; text-align: center; align-items: center; gap: 5px; }
+    .total-divider { display: none; }
+    .flex-header { flex-direction: column; gap: 15px; text-align: center; }
+}
+
+/* Single DOM responsive view: desktop table -> mobile card */
+@media screen and (max-width: 768px) {
+    .table-responsive { overflow-x: visible; border: 0; }
+    .tally-table { min-width: 0; width: 100%; border: 0; }
+    .tally-table thead { display: none; }
+    .tally-table tbody { display: block; width: 100%; }
+    .tally-table tbody tr {
+        display: block;
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        margin: 8px 0;
+        padding: 10px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .tally-table tbody tr td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        border: 0;
+        padding: 5px 3px;
+        font-size: 13px;
+    }
+    .tally-table tbody tr td:first-child { font-size: 10px; color: #777; }
+    .tally-table tbody tr td:nth-child(2) { font-size: 16px; font-weight: 700; color: var(--primary); }
+    .tally-table tbody tr td:nth-child(3) { font-size: 12px; color: #64748b; }
+    .tally-table tbody tr td:nth-child(4) { padding-top: 8px; }
+    .tally-table tbody tr td:nth-child(5) {
+        background: #f8fafc;
+        border-left: 3px solid #3498db;
+        border-radius: 4px;
+        margin-top: 5px;
+        white-space: pre-line;
+        word-break: break-word;
+    }
+    .tally-table tbody tr td:last-child {
+        display: flex;
+        gap: 5px;
+        margin-top: 7px;
+        padding-top: 8px;
+        border-top: 1px solid #eee;
+    }
+    .tally-table tbody tr td:last-child .btn-sm { flex: 1; margin: 0; }
+    .image-detail-row { display: none !important; }
+}
+</style>
 </head>
 <body>
 
 <div class="container">
-    <h2>⚡  Multi-Line Ledger Dashboard</h2>
+
     <div id="authStatus" class="status">Connecting securely...</div>
 
+    <div id="entryFormPlaceholder"></div>
+
+    <div id="entryModal" class="entry-modal" aria-hidden="true">
+        <div class="entry-modal-box">
+            <div class="entry-modal-head">
+                <b id="entryModalTitle">Edit Voucher</b>
+                <button type="button" class="entry-modal-close" id="entryModalClose">✕</button>
+            </div>
+            <div id="entryModalBody"></div>
+        </div>
+    </div>
+
     <!-- MAIN CONSOLIDATED INPUT FORM -->
-    <div class="card">
+    <div class="card" id="entryFormCard">
         <div class="flex-header">
-            <h3>📝 New Multi-Line Journal Voucher</h3>
+            <h3> New Multi-Linegxhdjdjdk bdjjd hdjdj Journal Voucher</h3>
+            <!-- सुधरा हुआ आधुनिक स्विच -->
             <div class="switch-container">
-                <span>🏠 Natwa</span>
+                <span class="switch-label">  Natwa</span>
                 <label class="switch">
                     <input type="checkbox" id="tableToggle">
                     <span class="slider"></span>
                 </label>
-                <span>🏢 Basahi</span>
+                <span class="switch-label"> Basahi</span>
             </div>
         </div>
 
@@ -93,7 +231,7 @@
             <div class="voucher-header">
                 <div class="form-group">
                     <label>Voucher Auto No</label>
-                    <input type="text" id="vouchNo" readonly style="font-weight: bold; color: var(--primary);">
+                    <input type="text" id="vouchNo" readonly class="bold-primary text-center">
                 </div>
                 <div class="form-group">
                     <label>Date</label>
@@ -101,37 +239,78 @@
                 </div>
             </div>
 
-            <!-- Double Entry Multiple Accounts Rows Container -->
-            <div id="entriesContainer">
-                <!-- Rows will be injected here dynamically by JavaScript -->
+            <!-- Double Entry Rows - (यह कंटेनर CSS से ग्रिड लेआउट में दिखेगा) -->
+            <div id="entriesContainer" class="entries-grid-container">
+                <!-- Example of a beautiful structured row inside JavaScript dynamically:
+                <div class="entry-row">
+                    <select class="entry-type"><option>Dr</option><option>Cr</option></select>
+                    <input type="text" placeholder="Account Name">
+                    <input type="number" placeholder="Amount ( )">
+                    <button class="btn-remove">❌</button>
+                </div> 
+                -->
             </div>
 
-            <button type="button" class="btn-add-row" id="addAccRowBtn">➕ Add Row (Dr/Cr)</button>
+            <button type="button" class="btn-add-row" id="addAccRowBtn"> Add Row (Dr/Cr)</button>
 
             <!-- Multi-line Narration Field -->
-            <div class="form-group" style="margin-top: 15px;">
-                <label>Multi-line Narration / Remarks</label>
+            <div class="form-group mt-15">
+                <label> Remarks</label>
                 <textarea id="narration" autocomplete="off" placeholder="Write comprehensive multiline details..." required></textarea>
                 <div id="narrationSuggestions" class="suggestions hidden"></div>
             </div>
 
+            <div id="editFiles" class="edit-files">
+                <b style="font-size:12px">📎 Bills / Photos</b>
+                <div id="editFilePreview" class="edit-file-preview"></div>
+                <input type="file" id="editFileInput" accept="image/*" multiple style="font-size:12px;margin-top:6px">
+                <button type="button" onclick="openEditCamera()" style="margin-top:6px;padding:6px 10px;background:#17a2b8;color:#fff;border:0;border-radius:4px;cursor:pointer">📸 Take Photo</button>
+                <div id="editStatus" style="font-size:11px;margin-top:5px;font-weight:600"></div>
+            </div>
+
             <!-- Totals & Validation Verification Block -->
             <div class="totals-box">
-                Total Dr: ₹<span id="totalDrLabel">0.00</span> | Total Cr: ₹<span id="totalCrLabel">0.00</span>
+                <div class="total-item">Total Dr: <span id="totalDrLabel" class="text-dr"> 0.00</span></div>
+                <div class="total-divider">|</div>
+                <div class="total-item">Total Cr: <span id="totalCrLabel" class="text-cr"> 0.00</span></div>
                 <div id="validationError" class="error-msg"></div>
             </div>
 
-            <div style="text-align: right; margin-top: 15px;">
-                <button type="submit" id="submitBtn" disabled style="padding: 12px 30px; font-size: 15px;">Save Voucher Entry</button>
+            <div class="text-right mt-15">
+                <button type="submit" id="submitBtn" disabled class="btn-submit">Save Voucher Entry</button>
             </div>
         </form>
-        <div id="speedLog" style="margin-top:10px; font-size:13px; color:#666;"></div>
+        <div id="speedLog" class="speed-log"></div>
+    </div>
+
+    <!-- तारीख फ़िल्टर बार और न्यू टैब बटन -->
+    <div class="filter-container">
+        <div class="filter-inputs">
+            <div>
+                <label class="filter-label">From Date: </label>
+                <input type="date" id="filterFromDate">
+            </div>
+            <div>
+                <label class="filter-label">To Date: </label>
+                <input type="date" id="filterToDate">
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button onclick="applyDateFilterAndListen()" class="btn-filter">🔍 Filter Data</button>
+            <button onclick="openTableInNewTab()" class="btn-tab">🔗 Open in New Tab</button>
+        </div>
     </div>
 
     <!-- SEPARATE DASHBOARD LEDGER TABLES -->
-    <div class="card" id="natwaCard">
-        <p class="table-title">🏠 Natwa Ledger Records</p>
-        <table>
+    <!-- ================== 1. NATWA LEDGER RECORDS ================== -->
+<div class="card" id="natwaCard">
+    <div class="table-header-bar h-natwa">
+        <p class="table-title">Natwa Ledger Records</p>
+    </div>
+    
+    <!-- 🖥️ डेस्कटॉप के लिए टेबल व्यू -->
+    <div class="table-responsive desktop-only-view">
+        <table class="tally-table">
             <thead>
                 <tr>
                     <th>Txn ID</th>
@@ -139,16 +318,25 @@
                     <th>Date</th>
                     <th>Accounts & Splits (Double Entry)</th>
                     <th>Narration</th>
-                    <th>Actions</th>
+                    <th class="text-center">Actions</th>
                 </tr>
             </thead>
             <tbody id="natwaTableBody"></tbody>
         </table>
     </div>
 
-    <div class="card" id="basahiCard">
-        <p class="table-title">🏢 Basahi Ledger Records</p>
-        <table>
+</div>
+
+
+<!-- ================== 2. BASAHI LEDGER RECORDS ================== -->
+<div class="card" id="basahiCard">
+    <div class="table-header-bar h-basahi">
+        <p class="table-title">Basahi Ledger Records</p>
+    </div>
+    
+    <!-- 🖥️ डेस्कटॉप के लिए टेबल व्यू -->
+    <div class="table-responsive desktop-only-view">
+        <table class="tally-table">
             <thead>
                 <tr>
                     <th>Txn ID</th>
@@ -156,18 +344,38 @@
                     <th>Date</th>
                     <th>Accounts & Splits (Double Entry)</th>
                     <th>Narration</th>
-                    <th>Actions</th>
+                    <th class="text-center">Actions</th>
                 </tr>
             </thead>
             <tbody id="basahiTableBody"></tbody>
         </table>
     </div>
+
 </div>
+
+</div>
+
+<!-- कैमरा पॉपअप मोडल -->
+<div id="cameraModal" class="modal">
+    <div class="modal-content">
+        <video id="modalVideo" autoplay playsinline class="modal-video"></video>
+        <div class="modal-buttons">
+            <button id="modalSnapBtn" class="btn-snap"> Click Photo</button>
+            <button id="modalCloseBtn" class="btn-close">XClose</button>
+        </div>
+    </div>
+    <canvas id="modalCanvas" class="hidden"></canvas>
+</div>
+
+
+
+
+
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getDatabase, ref, push, update, remove, query, limitToLast, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, push, orderByChild,startAt,endAt, update, remove, query, limitToLast, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDPcVvNNJZRVGF9SESynXtsZYwdJXB7J8U",
@@ -179,13 +387,20 @@ const firebaseConfig = {
     appId: "1:307019636811:web:8f6ee756dbb7e756e8edce"
 };
 
+
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
 let uniqueAccounts = new Set();
 let uniqueNarrations = new Set();
-let nextVoucherNum = 1;
+let maxNatwaVoucher = 0;
+let maxBasahiVoucher = 0;
+// Local memory cache to revert inline edits on cancel
+let cacheRowData = {}; 
+let editingKey = null, editingBranch = null, editingOldData = null;
+let editBillLinks = [];
 
 const submitBtn = document.getElementById("submitBtn");
 const tableToggle = document.getElementById("tableToggle");
@@ -196,78 +411,6 @@ const validationError = document.getElementById("validationError");
 
 document.getElementById("vouchDate").value = new Date().toISOString().split('T')[0];
 
-signInAnonymously(auth);
-
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        document.getElementById("authStatus").innerText = "🔒 Secure Tally Multi-Line Engine Active";
-        if(submitBtn) submitBtn.disabled = false;
-        initRealtimeListeners();
-        setupNarrationSuggestions();
-    }
-});
-
-// GENERATE MILLISECOND PARSED TXN ID & B-26-XXXX / N-26-XXXX VOUCHER NUMBER
-function generateTxnData() {
-    const d = new Date();
-    const currentYearShort = String(d.getFullYear()).slice(-2); // Automatically picks current year e.g. "26"
-    
-    const timePart = String(d.getHours()).padStart(2,'0') + 
-                     String(d.getMinutes()).padStart(2,'0') + 
-                     String(d.getSeconds()).padStart(2,'0') + "-" + 
-                     String(d.getMilliseconds()).padStart(3,'0');
-    
-    const prefix = tableToggle.checked ? "B" : "N";
-    const txnId = `TXN-${timePart}`;
-    const vouchNo = `${prefix}-${currentYearShort}-${String(nextVoucherNum).padStart(4, '0')}`;
-    
-    return { txnId, vouchNo };
-}
-
-function refreshVoucherField() {
-    const data = generateTxnData();
-    document.getElementById("vouchNo").value = data.vouchNo;
-}
-setInterval(refreshVoucherField, 500);
-tableToggle.addEventListener("change", refreshVoucherField);
-
-// MULTI-LINE ROW INJECTION ENGINE
-let rowCounter = 0;
-function addAccountRow(type = "Dr", accountName = "", amount = "") {
-    rowCounter++;
-    const rowId = `entry-row-${rowCounter}`;
-    
-    const div = document.createElement("div");
-    div.className = "entry-row";
-    div.id = rowId;
-    div.innerHTML = `
-        <div>
-            <select class="row-type" onchange="window.calculateFormTotals()">
-                <option value="Dr" ${type === "Dr" ? "selected" : ""}>Dr</option>
-                <option value="Cr" ${type === "Cr" ? "selected" : ""}>Cr</option>
-            </select>
-        </div>
-        <div style="position:relative;">
-            <input type="text" class="row-account" value="${accountName}" placeholder="Account..." autocomplete="off" required>
-            <div class="suggestions hidden"></div>
-        </div>
-        <div>
-            <input type="number" step="0.01" class="row-amount" value="${amount}" placeholder="Amount ₹" oninput="window.calculateFormTotals()" required>
-        </div>
-        <div>
-            <button type="button" class="btn-remove-row" onclick="document.getElementById('${rowId}').remove(); window.calculateFormTotals();">❌</button>
-        </div>
-    `;
-    entriesContainer.appendChild(div);
-    setupAccountRowSuggestions(div.querySelector(".row-account"), div.querySelector(".suggestions"));
-    window.calculateFormTotals();
-}
-
-addAccountRow("Dr");
-addAccountRow("Cr");
-document.getElementById("addAccRowBtn").addEventListener("click", () => addAccountRow("Dr"));
-
-// FORM MATHEMATICAL TOTALS CALCULATION
 window.calculateFormTotals = function() {
     let totalDr = 0, totalCr = 0;
     document.querySelectorAll(".entry-row").forEach(row => {
@@ -290,204 +433,496 @@ window.calculateFormTotals = function() {
     }
 };
 
-document.getElementById("txnForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    window.calculateFormTotals();
-    if(submitBtn.disabled) return;
-    
-    submitBtn.disabled = true;
-    const targetBranch = tableToggle.checked ? "basahi" : "natwa";
-    const dbRef = ref(db, `transactions/${targetBranch}`);
-    const timing = generateTxnData();
-    
-    const items = [];
-    document.querySelectorAll(".entry-row").forEach(row => {
-        items.push({
-            type: row.querySelector(".row-type").value,
-            account: row.querySelector(".row-account").value.trim(),
-            amount: parseFloat(row.querySelector(".row-amount").value).toFixed(2)
-        });
-        uniqueAccounts.add(row.querySelector(".row-account").value.trim());
-    });
+signInAnonymously(auth);
 
-    const multiLineNarration = document.getElementById("narration").value.trim();
-    uniqueNarrations.add(multiLineNarration);
-
-    try {
-        await push(dbRef, {
-            txn_id: timing.txnId,
-            voucher_no: timing.vouchNo,
-            date: document.getElementById("vouchDate").value,
-            entries: items,
-            narration: multiLineNarration,
-            timestamp: Date.now()
-        });
-        nextVoucherNum++;
-        document.getElementById("speedLog").innerText = `⚡ Voucher ${timing.vouchNo} Synced!`;
-        entriesContainer.innerHTML = "";
-        addAccountRow("Dr"); addAccountRow("Cr");
-        document.getElementById("narration").value = "";
-    } catch (err) { alert("Error: " + err.message); }
-    submitBtn.disabled = false;
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        document.getElementById("authStatus").innerText = " Secure Multi-Line Engine Active";
+        if(submitBtn) submitBtn.disabled = false;
+        setupNarrationSuggestions();
+        initRealtimeListeners();
+        
+    }
 });
 
-function initRealtimeListeners() {
-    ['natwa', 'basahi'].forEach(branch => {
-        const branchRef = query(ref(db, `transactions/${branch}`), limitToLast(50));
-        const tbody = document.getElementById(`${branch}TableBody`);
-
-        onChildAdded(branchRef, (snapshot) => {
-            const data = snapshot.val();
-            if(!data) return;
-            if(data.entries) data.entries.forEach(e => uniqueAccounts.add(e.account));
-            uniqueNarrations.add(data.narration);
-
-            const row = document.createElement("tr");
-            row.id = `row-${snapshot.key}`;
-            row.dataset.key = snapshot.key;
-            row.dataset.branch = branch;
-            renderRowStandard(row, data);
-            tbody.insertBefore(row, tbody.firstChild);
-        });
-
-        onChildChanged(branchRef, (snapshot) => {
-            const row = document.getElementById(`row-${snapshot.key}`);
-            if(row) renderRowStandard(row, snapshot.val());
-        });
-
-        onChildRemoved(branchRef, (snapshot) => {
-            const row = document.getElementById(`row-${snapshot.key}`);
-            if(row) row.remove();
-        });
-    });
+function generateTxnData() {
+    const d = new Date();
+    const currentYearShort = String(d.getFullYear()).slice(-2); 
+    
+    const timePart = String(d.getHours()).padStart(2,'0') + 
+                     String(d.getMinutes()).padStart(2,'0') + 
+                     String(d.getSeconds()).padStart(2,'0') + "-" + 
+                     String(d.getMilliseconds()).padStart(3,'0');
+    
+    const isBasahi = tableToggle.checked;
+    const prefix = isBasahi ? "B" : "N";
+    const nextNum = isBasahi ? (maxBasahiVoucher + 1) : (maxNatwaVoucher + 1);
+    
+    const txnId = `TXN-${timePart}`;
+    const vouchNo = `${prefix}-${currentYearShort}-${String(nextNum).padStart(4, '0')}`;
+    
+    return { txnId, vouchNo };
 }
 
-function renderRowStandard(row, data) {
-    let entriesHtml = `<div style="display:flex; flex-direction:column; gap:4px;">`;
-    if(data.entries) {
-        data.entries.forEach(e => {
-            entriesHtml += `<span><span class="badge badge-${e.type.toLowerCase()}">${e.type}</span> <b>${e.account}</b>: ₹${e.amount}</span>`;
-        });
-    }
-    entriesHtml += `</div>`;
-    const safeNarrationText = data.narration ? data.narration.replace(/\n/g, '<br>') : '';
-
-    row.innerHTML = `
-        <td><small><b>${data.txn_id}</b></small></td>
-        <td><b>${data.voucher_no}</b></td>
-        <td>${data.date}</td>
-        <td>${entriesHtml}</td>
-        <td><span style="white-space: pre-line;">${safeNarrationText}</span></td>
-        <td>
-            <button class="btn-sm btn-edit" onclick="triggerInlineEdit('${row.id}')">Edit</button>
-            <button class="btn-sm btn-delete" onclick="triggerDelete('${row.id}')">Delete</button>
-            <button class="btn-sm btn-print" onclick="triggerPrint('${row.id}')">Print</button>
-        </td>
-    `;
+function refreshVoucherField() {
+    if(editingKey) return;
+    const data = generateTxnData();
+    document.getElementById("vouchNo").value = data.vouchNo;
 }
+setInterval(refreshVoucherField, 500);
+tableToggle.addEventListener("change", refreshVoucherField);
 
-window.triggerInlineEdit = function(rowId) {
+window.removeRow = function(rowId) {
     const row = document.getElementById(rowId);
-    const key = row.dataset.key;
-    const cells = row.getElementsByTagName("td");
-    
-    const txnId = cells[0].innerText;
-    const voucherNo = cells[1].innerText;
-    const dateVal = cells[2].innerText;
-    
-    const currentEntries = [];
-    row.querySelectorAll("td:nth-child(4) > div > span").forEach(spanNode => {
-        const type = spanNode.querySelector(".badge").innerText;
-        const textParts = spanNode.innerText.replace(type, '').trim().split(': ₹');
-        currentEntries.push({ type: type, account: textParts[0].trim(), amount: textParts[1].trim() });
-    });
-    const nativeNarrationText = row.querySelector("td:nth-child(5)").innerText;
-
-    let editRowsHtml = `<div id="edit-container-${key}">`;
-    currentEntries.forEach(e => {
-        editRowsHtml += `
-            <div style="display:flex; gap:5px; margin-bottom:5px;">
-                <select class="edit-type-${key}" style="width:60px;">
-                    <option value="Dr" ${e.type === "Dr" ? "selected" : ""}>Dr</option>
-                    <option value="Cr" ${e.type === "Cr" ? "selected" : ""}>Cr</option>
-                </select>
-                <input type="text" class="edit-acc-${key}" value="${e.account}" style="width:120px;">
-                <input type="number" step="0.01" class="edit-amt-${key}" value="${e.amount}" style="width:80px;">
-            </div>
-        `;
-    });
-    editRowsHtml += `</div>`;
-
-    row.innerHTML = `
-        <td><small><b>${txnId}</b></small></td>
-        <td><input type="text" value="${voucherNo}" id="edit-vouch-${key}" style="width:90px; font-weight:bold;"></td>
-        <td><input type="date" value="${dateVal}" id="edit-date-${key}" style="width:125px;"></td>
-        <td>${editRowsHtml}</td>
-        <td><textarea id="edit-narr-${key}" style="width:100%; min-height:50px;">${nativeNarrationText}</textarea></td>
-        <td>
-            <button class="btn-sm btn-save" onclick="saveInlineEdit('${rowId}')">Save</button>
-            <button class="btn-sm btn-cancel" onclick="location.reload()">Cancel</button>
-        </td>
-    `;
+    if(row) {
+        row.remove();
+        window.calculateFormTotals();
+    }
 };
 
-window.saveInlineEdit = async function(rowId) {
-    const row = document.getElementById(rowId);
-    const key = row.dataset.key;
-    const branch = row.dataset.branch;
+let rowCounter = 0;
+function addAccountRow(type = "Dr", accountName = "", amount = "") {
+    rowCounter++;
+    const rowId = `entry-row-${rowCounter}`;
+    
+    const div = document.createElement("div");
+    div.className = "entry-row";
+    div.id = rowId;
+    div.innerHTML = `
+        <div>
+            <select class="row-type" onchange="window.calculateFormTotals()">
+                <option value="Dr" ${type === "Dr" ? "selected" : ""}>Dr</option>
+                <option value="Cr" ${type === "Cr" ? "selected" : ""}>Cr</option>
+            </select>
+        </div>
+        <div style="position:relative;">
+            <input type="text" class="row-account" value="${accountName}" placeholder="Account..." autocomplete="off" required>
+            <div class="suggestions hidden"></div>
+        </div>
+        <div>
+            <input type="number" step="0.01" class="row-amount" value="${amount}" placeholder="Amount  " oninput="window.calculateFormTotals()" required>
+        </div>
+        <div>
+            <button type="button" class="btn-remove-row" onclick="window.removeRow('${rowId}')" style="colour:red">X</button>
+        </div>
+    `;
+    entriesContainer.appendChild(div);
+    setupAccountRowSuggestions(div.querySelector(".row-account"), div.querySelector(".suggestions"));
+    window.calculateFormTotals();
+}
 
-    const types = row.querySelectorAll(`.edit-type-${key}`);
-    const accounts = row.querySelectorAll(`.edit-acc-${key}`);
-    const amounts = row.querySelectorAll(`.edit-amt-${key}`);
+addAccountRow("Dr");
+addAccountRow("Cr");
+document.getElementById("addAccRowBtn").addEventListener("click", () => addAccountRow("Dr"));
 
-    const updatedEntries = [];
-    let totalDr = 0, totalCr = 0;
-
-    for(let i=0; i < types.length; i++) {
-        const amt = parseFloat(amounts[i].value) || 0;
-        if(types[i].value === "Dr") totalDr += amt; else totalCr += amt;
-        updatedEntries.push({ type: types[i].value, account: accounts[i].value.trim(), amount: amt.toFixed(2) });
-    }
-
-    if(totalDr.toFixed(2) !== totalCr.toFixed(2)) {
-        alert("Mismatch Error: Total Debit and Credit must match perfectly!");
-        return;
-    }
-
+document.getElementById("txnForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    calculateFormTotals();
+    if(submitBtn.disabled) return;
+    submitBtn.disabled = true;
+    const branch = editingKey ? editingBranch : (tableToggle.checked ? "basahi" : "natwa");
+    const items = [...document.querySelectorAll(".entry-row")].map(row => ({
+        type: row.querySelector(".row-type").value,
+        account: row.querySelector(".row-account").value.trim(),
+        amount: (parseFloat(row.querySelector(".row-amount").value)||0).toFixed(2)
+    }));
+    items.forEach(x => uniqueAccounts.add(x.account));
+    const narration = document.getElementById("narration").value.trim();
+    uniqueNarrations.add(narration);
+    const files = editingKey ? [...(document.getElementById("editFileInput")?.files || [])] : [];
+    let newLinks = [];
     try {
-        await update(ref(db, `transactions/${branch}/${key}`), {
-            voucher_no: document.getElementById(`edit-vouch-${key}`).value.trim(),
-            date: document.getElementById(`edit-date-${key}`).value,
-            entries: updatedEntries,
-            narration: document.getElementById(`edit-narr-${key}`).value.trim()
+        if(editingKey && files.length){
+            document.getElementById("editStatus").textContent = "Compressing...";
+            for(const file of files) newLinks.push(await convertFileToBase64(file));
+        }
+        const data = {
+            txn_id: editingKey ? editingOldData.txn_id : generateTxnData().txnId,
+            voucher_no: document.getElementById("vouchNo").value.trim(),
+            date: document.getElementById("vouchDate").value,
+            entries: items,
+            narration,
+            billLinks: editingKey ? Array.from(new Set(editBillLinks.concat(newLinks))) : [],
+            timestamp: editingKey ? (editingOldData.timestamp || Date.now()) : Date.now()
+        };
+        if(editingKey){
+            await update(ref(db, `transactions/${branch}/${editingKey}`), data);
+            cacheRowData[`row-${editingKey}`] = data;
+            cacheRowData[editingKey] = data;
+            const row = document.getElementById(`row-${editingKey}`);
+            if(row) renderRowStandard(row,data);
+            closeEntryForm();
+            document.getElementById("speedLog").innerText = `✓ Voucher ${data.voucher_no} updated`;
+        }else{
+            await push(ref(db, `transactions/${branch}`), data);
+            document.getElementById("speedLog").innerText = `⚡ Voucher ${data.voucher_no} Synced Successfully!`;
+            resetEntryForm();
+        }
+    } catch(err) {
+        console.error(err);
+        alert((editingKey ? "Update" : "Save") + " failed: " + err.message);
+    } finally {
+        submitBtn.disabled = false;
+        if(!editingKey) calculateFormTotals();
+    }
+});function parseVoucherNumber(vouchStr) {
+    if(!vouchStr) return 0;
+    const parts = vouchStr.split('-');
+    if(parts.length >= 3) {
+        return parseInt(parts[2]) || 0;
+    }
+    return 0;
+}
+
+// एक्टिव Firebase लिसनर्स को ट्रैक करने के लिए ग्लोबल ऑब्जेक्ट
+// एक्टिव Firebase लिसनर्स को ट्रैक करने के लिए ग्लोबल ऑब्जेक्ट
+let activeListeners = {};
+
+// 1. पेज लोड होने का लॉजिक
+document.addEventListener("DOMContentLoaded", () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    let fromParam = urlParams.get('from');
+    let toParam = urlParams.get('to');
+
+    if (!fromParam || !toParam) {
+        // डिफ़ॉल्ट रूप से पिछले 2 दिन
+        const toDate = new Date(); 
+        const fromDate = new Date();
+        fromDate.setDate(toDate.getDate() - 1); 
+
+        fromParam = fromDate.toISOString().split('T')[0];
+        toParam = toDate.toISOString().split('T')[0];
+    }
+
+    document.getElementById("filterFromDate").value = fromParam;
+    document.getElementById("filterToDate").value = toParam;
+
+    // 🛠️ टॉगल स्विच का इवेंट लिसनर
+    const toggleInput = document.getElementById("tableToggle");
+    if (toggleInput) {
+        toggleInput.addEventListener("change", () => {
+            // जैसे ही टॉगल बदलेगा, यह टेबल को भी शो/हाइड करेगा और डेटा भी लोड करेगा
+            applyDateFilterAndListen();
         });
-    } catch(err) { alert("Failed: " + err.message); }
+    }
+
+    // पहली बार डेटा लोड करें
+    applyDateFilterAndListen();
+});
+
+// 2. फ़िल्टर और टेबल शो/हाइड करने का मुख्य फंक्शन
+
+function applyDateFilterAndListen() {
+    const fromVal = document.getElementById("filterFromDate").value;
+    const toVal = document.getElementById("filterToDate").value;
+
+    if (!fromVal || !toVal) return;
+
+    const toggleInput = document.getElementById("tableToggle");
+    if (!toggleInput) return;
+    
+    const activeBranch = toggleInput.checked ? 'basahi' : 'natwa'; 
+    const inactiveBranch = toggleInput.checked ? 'natwa' : 'basahi';
+
+    const activeTable = document.getElementById(`${activeBranch}TableBody`);
+    const inactiveTable = document.getElementById(`${inactiveBranch}TableBody`);
+    
+    if (activeTable) {
+        const mainTable = activeTable.closest('table');
+        if (mainTable) mainTable.style.display = ""; 
+    }
+    if (inactiveTable) {
+        const mainTable = inactiveTable.closest('table');
+        if (mainTable) mainTable.style.display = "none";
+    }
+
+    // A. इनएक्टिव ब्रांच का कनेक्शन बंद करें
+    if (activeListeners[inactiveBranch]) {
+        activeListeners[inactiveBranch](); 
+        delete activeListeners[inactiveBranch];
+    }
+
+    // B. एक्टिव टेबल का पुराना डेटा साफ करें
+    if (activeTable) activeTable.innerHTML = ""; 
+
+    // C. एक्टिव ब्रांच का पुराना लिसनर बंद करें
+    if (activeListeners[activeBranch]) {
+        activeListeners[activeBranch]();
+    }
+
+    console.log(`Switched to: ${activeBranch}. Fetching grid data from ${fromVal} to ${toVal}`);
+
+    // ==========================================
+    // 1. 🚀 केवल सुझावों (Suggestions) के लिए - पूरा डेटा (बिना डेट फ़िल्टर)
+    // ==========================================
+    const fullBranchRef = ref(db, `transactions/${activeBranch}`);
+    
+    const unsubscribeSuggestions = onChildAdded(fullBranchRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        // सुझावों के लिए यूनिक अकाउंट और नरेशन को बिना डेट रेंज के स्टोर करें
+        if (data.entries) data.entries.forEach(e => uniqueAccounts.add(e.account));
+        if (data.narration) uniqueNarrations.add(data.narration);
+        
+        // यहाँ आप अपना autocomplete/suggestion रीफ्रेस करने का फंक्शन भी कॉल कर सकते हैं
+        // updateAutocompleteDropdowns(); 
+    });
+
+    // ==========================================
+    // 2. 📊 केवल टेबल ग्रिड के लिए - डेट रेंज क्वेरी
+    // ==========================================
+    const branchRef = query(
+        ref(db, `transactions/${activeBranch}`),
+        orderByChild('date'),
+        startAt(fromVal),
+        endAt(toVal)
+    );
+
+    const unsubscribeAdded = onChildAdded(branchRef, (snapshot) => {
+        const data = snapshot.val();
+        if(!data) return;
+
+        const vNum = parseVoucherNumber(data.voucher_no);
+        if(activeBranch === 'natwa' && vNum > maxNatwaVoucher) maxNatwaVoucher = vNum;
+        if(activeBranch === 'basahi' && vNum > maxBasahiVoucher) maxBasahiVoucher = vNum;
+
+        // ध्यान दें: सुझावों वाला लॉजिक यहाँ से हटाकर ऊपर 'fullBranchRef' में डाल दिया गया है
+
+        const row = document.createElement("tr");
+        row.id = `row-${snapshot.key}`;
+        row.dataset.key = snapshot.key;
+        row.dataset.branch = activeBranch;
+
+        renderRowStandard(row, data);
+
+        if(activeTable) {
+            activeTable.insertBefore(row, activeTable.firstChild);
+        }
+    });
+
+    const unsubscribeChanged = onChildChanged(branchRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        const row = document.getElementById(`row-${snapshot.key}`);
+        if (row && row.dataset.key !== editingKey) {
+            renderRowStandard(row, data);
+        }
+    });
+
+    const unsubscribeRemoved = onChildRemoved(branchRef, (snapshot) => {
+        const row = document.getElementById(`row-${snapshot.key}`);
+        if(row) {
+            row.remove();
+        }
+        delete cacheRowData[`row-${snapshot.key}`];
+        delete cacheRowData[snapshot.key];
+    });
+
+    // सभी अनसब्सक्राइब फंक्शन्स को एक्टिव लिसनर्स में डालें (सुझाव वाले लिसनर सहित)
+    activeListeners[activeBranch] = () => {
+        unsubscribeSuggestions(); // सुझावों का लिसनर बंद करें
+        unsubscribeAdded();
+        unsubscribeChanged();
+        unsubscribeRemoved();
+    };
+}
+
+
+
+
+
+
+// ग्लोबल स्कोप में फंक्शंस डालें
+window.applyDateFilterAndListen = applyDateFilterAndListen;
+window.openTableInNewTab = openTableInNewTab;
+
+// 3. ओपन इन न्यू टैब का सही फंक्शन
+function openTableInNewTab() {
+    const fromVal = document.getElementById("filterFromDate").value;
+    const toVal = document.getElementById("filterToDate").value;
+    const currentUrl = window.location.origin + window.location.pathname;
+    window.open(`${currentUrl}?from=${fromVal}&to=${toVal}`, '_blank');
+}
+
+// इन फंक्शंस को ग्लोबल (window) स्कोप में डालें ताकि HTML onclick इन्हें ढूंढ सके
+window.applyDateFilterAndListen = applyDateFilterAndListen;
+window.openTableInNewTab = openTableInNewTab;
+
+
+
+
+
+
+// 4. --- आपका अपडेटेड रेंडरर फंक्शन (DD-MM-YYYY फॉर्मेट के साथ) ---
+// यह मुख्य फ़ंक्शन सिर्फ HTML स्ट्रिंग्स (टेम्पलेट) जनरेट करेगा
+// यह मुख्य फ़ंक्शन डेटा और सही ID लेकर HTML टेम्पलेट्स तैयार करेगा
+function escapeHtml(v){
+    return String(v ?? '').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+
+function getRowTemplates(data,rowId){
+    let entriesHtml='<div style="display:flex;flex-direction:column;gap:4px">';
+    (data.entries||[]).slice().reverse().forEach(e=>{
+        const type=escapeHtml(e.type||'');
+        const cls=String(e.type||'').toLowerCase()==='cr'?'cr':'dr';
+        entriesHtml+=`<span><span class="badge badge-${cls}">${type}</span> <b>${escapeHtml(e.account||'')}</b>: ${escapeHtml(e.amount||'')}</span>`;
+    });
+    entriesHtml+='</div>';
+
+    const safeNarration=escapeHtml(data.narration||'').replace(/\n/g,'<br>');
+    let docHtml='';
+    const links=Array.isArray(data.billLinks)?data.billLinks:[];
+    if(links.length){
+        docHtml=`<details style="font-size:12px;margin-top:6px"><summary style="cursor:pointer;font-weight:bold;color:#007bff">📄 View Receipts (${links.length})</summary><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">`;
+        links.forEach(link=>{
+            if(String(link).startsWith('data:image')){
+                docHtml+=`<img loading="lazy" src="${link}" style="width:120px;max-height:90px;object-fit:contain;background:#fff3cd;border:1px solid #ffeba0;border-radius:4px">`;
+            }else{
+                docHtml+=`<iframe loading="lazy" src="${escapeHtml(link)}" width="120" height="90" style="border:0;background:#fff"></iframe>`;
+            }
+        });
+        docHtml+='</div></details>';
+    }
+
+    let displayDate=data.date||'';
+    if(displayDate.includes('-')){
+        const p=displayDate.split('-');
+        if(p.length===3) displayDate=`${p[2]}-${p[1]}-${p[0]}`;
+    }
+
+    const total=escapeHtml(data.total_amount||data.amount||'0.00');
+    const txn=escapeHtml(data.txn_id||'');
+    const voucher=escapeHtml(data.voucher_no||'');
+
+    return `
+        <td><small><b>${txn}</b></small></td>
+        <td><b>${voucher}</b></td>
+        <td>${escapeHtml(displayDate)}</td>
+        <td>${entriesHtml}${docHtml}</td>
+        <td><span style="white-space:pre-line">${safeNarration||'N/A'}</span></td>
+        <td>
+            <button class="btn-sm btn-edit" onclick="openEditForm('${rowId}')">Edit</button>
+            <button class="btn-sm btn-delete" onclick="triggerDelete('${rowId}')">Delete</button>
+            <button class="btn-sm btn-print" onclick="triggerPrint('${rowId}')">Print</button>
+        </td>`;
+}
+
+function renderRowStandard(row,data){
+    const rowIdStr=String(row.id);
+    cacheRowData[rowIdStr.replace('row-','')]=data;
+    cacheRowData[rowIdStr]=data;
+    row.innerHTML=getRowTemplates(data,rowIdStr);
+}
+
+function resetEntryForm(){
+    editingKey=null; editingBranch=null; editingOldData=null; editBillLinks=[];
+    document.getElementById("entriesContainer").innerHTML="";
+    addAccountRow("Dr"); addAccountRow("Cr");
+    document.getElementById("narration").value="";
+    document.getElementById("vouchDate").value=new Date().toISOString().split("T")[0];
+    document.getElementById("vouchNo").readOnly=true;
+    document.getElementById("tableToggle").disabled=false;
+    document.getElementById("editFiles").classList.remove("show");
+    document.getElementById("entryFormCard").classList.remove("edit-mode");
+    document.getElementById("submitBtn").textContent="Save Voucher Entry";
+    refreshVoucherField(); calculateFormTotals();
+}
+
+function closeEntryForm(){
+    const card=document.getElementById("entryFormCard"), modal=document.getElementById("entryModal");
+    document.getElementById("entryFormPlaceholder").appendChild(card);
+    modal.classList.remove("show"); modal.setAttribute("aria-hidden","true");
+    resetEntryForm();
+}
+
+window.openEditForm=function(rowId){
+    const row=document.getElementById(rowId), data=cacheRowData[rowId];
+    if(!row || !data || !row.dataset.key) return;
+    editingKey=row.dataset.key; editingBranch=row.dataset.branch; editingOldData=data;
+    editBillLinks=data.billLinks ? [...data.billLinks] : [];
+    const card=document.getElementById("entryFormCard");
+    document.getElementById("entryModalBody").appendChild(card);
+    document.getElementById("entryModal").classList.add("show");
+    document.getElementById("entryModal").setAttribute("aria-hidden","false");
+    document.getElementById("entryModalTitle").textContent=`Edit Voucher ${data.voucher_no||""}`;
+    document.getElementById("tableToggle").checked=editingBranch==="basahi";
+    document.getElementById("tableToggle").disabled=true;
+    document.getElementById("vouchNo").value=data.voucher_no||"";
+    document.getElementById("vouchNo").readOnly=false;
+    document.getElementById("vouchDate").value=data.date||"";
+    document.getElementById("narration").value=data.narration||"";
+    document.getElementById("entriesContainer").innerHTML="";
+    (data.entries||[]).forEach(e=>addAccountRow(e.type||"Dr",e.account||"",e.amount||""));
+    if(!(data.entries||[]).length){addAccountRow("Dr");addAccountRow("Cr")}
+    document.getElementById("editFileInput").value="";
+    document.getElementById("editStatus").textContent="";
+    document.getElementById("editFiles").classList.add("show");
+    document.getElementById("entryFormCard").classList.add("edit-mode");
+    document.getElementById("submitBtn").textContent="Update Voucher";
+    renderEditFiles();
+    calculateFormTotals();
+    document.getElementById("entryModalBox")?.scrollTo(0,0);
 };
 
-window.triggerDelete = async function(rowId) {
-    if(confirm("Delete this Tally multi-split voucher?")) {
-        const row = document.getElementById(rowId);
-        await remove(ref(db, `transactions/${row.dataset.branch}/${row.dataset.key}`));
+function renderEditFiles(){
+    const box=document.getElementById("editFilePreview");
+    if(!box)return;
+    if(!editBillLinks.length){box.innerHTML='<span style="font-size:11px;color:#999">No bills attached</span>';return}
+    box.innerHTML=editBillLinks.map((link,i)=>{
+        const local=link.startsWith("data:image");
+        return `<div class="edit-file-box"><button type="button" class="edit-file-remove" onclick="removeEditFile(${i})">×</button>${local?`<img src="${link}">`:`<iframe src="${link}"></iframe>`}</div>`;
+    }).join("");
+}
+window.removeEditFile=function(i){editBillLinks.splice(i,1);renderEditFiles()};
+
+document.getElementById("entryModalClose").addEventListener("click",()=>{
+    if(editingKey && !confirm("Close without saving changes?")) return;
+    closeEntryForm();
+});
+
+function convertFileToBase64(file){
+    return new Promise(async(resolve,reject)=>{
+        try{
+            if(file.type.startsWith("image/")){
+                const blob=await imageCompression(file,{maxSizeMB:2.5,maxWidthOrHeight:1600,useWebWorker:true,initialQuality:.95});
+                const r=new FileReader(); r.onloadend=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(blob);
+            }else{
+                const r=new FileReader(); r.onloadend=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file);
+            }
+        }catch(e){reject(e)}
+    });
+}
+
+window.triggerDelete=async function(rowId){
+    const row=document.getElementById(rowId);
+    if(!row || !confirm("Delete this Tally multi-split voucher?")) return;
+    const key=row.dataset.key, branch=row.dataset.branch, parent=row.parentNode, next=row.nextSibling, data=cacheRowData[rowId];
+    row.remove();
+    delete cacheRowData[rowId]; delete cacheRowData[key];
+    try{
+        await remove(ref(db,`transactions/${branch}/${key}`));
+    }catch(err){
+        if(parent) parent.insertBefore(row,next);
+        if(data){cacheRowData[rowId]=data;cacheRowData[key]=data;renderRowStandard(row,data)}
+        alert("Delete failed: "+err.message);
     }
 };
 
 window.triggerPrint = function(rowId) {
-    const row = document.getElementById(rowId);
-    const cells = row.getElementsByTagName("td");
+    const data = cacheRowData[rowId];
+    if(!data) return;
     const printWindow = window.open('', '_blank');
     
     printWindow.document.write(`
         <html><head><title>Print Voucher</title><style>body { font-family: sans-serif; padding: 30px; } .box { border: 2px solid #333; padding: 20px; border-radius: 8px; } table { width:100%; border-collapse:collapse; margin:15px 0; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }</style></head>
         <body><div class="box"><h2 style="text-align:center;">JOURNAL VOUCHER RECEIPT</h2>
-        <p><b>Txn ID:</b> ${cells[0].innerText} | <b>Voucher No:</b> ${cells[1].innerText} | <b>Date:</b> ${cells[2].innerText}</p><hr/>
+        <p><b>Txn ID:</b> ${data.txn_id} | <b>Voucher No:</b> ${data.voucher_no} | <b>Date:</b> ${data.date}</p><hr/>
         <table><thead><tr><th>Type</th><th>Account Ledger</th><th>Amount</th></tr></thead><tbody>
-        ${Array.from(row.querySelectorAll("td:nth-child(4) > div > span")).map(span => {
-            const type = span.querySelector(".badge").innerText;
-            const rest = span.innerText.replace(type, '').split(': ₹');
-            return `<tr><td><b>\${type}</b></td><td>\({rest[0]}</td><td>₹\){rest[1]}</td></tr>`;
-        }).join('')}
+        ${data.entries.map(e => `<tr><td><b>${e.type}</b></td><td>${e.account}</td><td>${e.amount}</td></tr>`).join('')}
         </tbody></table>
-        <div style="background:#f5f5f5; padding:10px; border-left:4px solid #4f46e5;"><b>Narration:</b><br>${cells[4].innerText}</div></div>
+        <div style="background:#f5f5f5; padding:10px; border-left:4px solid #4f46e5; white-space: pre-line;"><b>Narration:</b><br>${data.narration}</div></div>
         </body></html>
     `);
     printWindow.document.close();
@@ -509,6 +944,7 @@ function setupAccountRowSuggestions(inputElement, suggestionsElement) {
     });
 }
 
+// Fixed scope capture variable reference error issue
 function setupNarrationSuggestions() {
     const input = document.getElementById("narration");
     const sugBox = document.getElementById("narrationSuggestions");
@@ -524,8 +960,37 @@ function setupNarrationSuggestions() {
         sugBox.classList.remove("hidden");
     });
 }
+// यह आपके <script type="module"> के अंदर होना चाहिए
+
+let cameraStream=null;
+window.openEditCamera=async function(){
+    const modal=document.getElementById("cameraModal"),video=document.getElementById("modalVideo");
+    if(!editingKey)return;
+    modal.style.display="flex";
+    try{
+        cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:{ideal:1280},height:{ideal:720}},audio:false});
+        video.srcObject=cameraStream;
+    }catch(e){
+        try{cameraStream=await navigator.mediaDevices.getUserMedia({video:true});video.srcObject=cameraStream}
+        catch(err){alert("कैमरा शुरू नहीं हो सका: "+err.message);closeCamera()}
+    }
+};
+function closeCamera(){
+    document.getElementById("cameraModal").style.display="none";
+    if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null}
+}
+document.getElementById("modalCloseBtn").addEventListener("click",closeCamera);
+document.getElementById("entryModal").addEventListener("click",e=>{
+    if(e.target.id==="entryModal" && !editingKey) closeEntryForm();
+});
+document.getElementById("modalSnapBtn").addEventListener("click",()=>{
+    const video=document.getElementById("modalVideo"),canvas=document.getElementById("modalCanvas");
+    if(!video.videoWidth)return;
+    canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+    canvas.getContext("2d").drawImage(video,0,0,canvas.width,canvas.height);
+    editBillLinks.push(canvas.toDataURL("image/jpeg",.8));
+    renderEditFiles();closeCamera();
+});
 </script>
 </body>
 </html>
-
-
