@@ -44,11 +44,49 @@ input:checked + .slider { background-color: orange; }
 input:checked + .slider:before { transform: translateX(22px); }
 
 /* Voucher Header & Forms */
-.voucher-header { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; background: var(--primary-light); padding: 12px; border-radius: 6px; }
-.form-group { flex: 1; min-width: 180px; display: flex; flex-direction: column; }
-.form-group label { font-size: 12px; font-weight: 700; color: #555; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 0.5px; }
-input, textarea, select,.btn-remove-row  { padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box; transition: border 0.2s; background: #fff; }
-input:focus, textarea:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(15,76,129,0.15); }
+.voucher-header { 
+    display: flex;          /* Isse iske andar ke items ek hi line mein aa jayenge */
+    gap: 20px;              /* Date aur Voucher number ke beech ka gap */
+    align-items: center;    /* Dono ko vertically center align karne ke liye */
+    margin-bottom: 20px; 
+    background: var(--primary-light); 
+    padding: 12px; 
+    border-radius: 6px; 
+}
+
+.form-group {  
+    display: flex;          /* Label aur Input ko manage karne ke liye */
+    flex-direction: column; /* Label upar aur Input niche rahega, par dono groups ek line mein rahenge */
+    flex: 1;                /* Dono groups barabar jagah lenge. Agar chhota rakhna hai toh ise hata sakte hain */
+}
+
+.form-group label { 
+    font-size: 12px; 
+    font-weight: 700; 
+    color: #555; 
+    text-transform: uppercase; 
+    margin-bottom: 5px; 
+    letter-spacing: 0.5px; 
+}
+
+/* Aapke baki rules mein width aur padding ki values incomplete thi, unhe sahi kar diya hai */
+input, textarea, select, .btn-remove-row  { 
+    padding: 8px 12px;      /* Sahi padding add ki */
+    border: 1px solid var(--border-color); 
+    border-radius: 6px; 
+    font-size: 14px; 
+    width: 100%;            /* Width ko 100% kiya taaki wo form-group ke andar fit baithe */
+    box-sizing: border-box; 
+    transition: border 0.2s; 
+    background: #fff; 
+}
+
+input:focus, textarea:focus, select:focus { 
+    border-color: var(--primary); 
+    outline: none; 
+    box-shadow: 0 0 0 3px rgba(15,76,129,0.15); 
+}
+
 
 /* Dynamic Entry Row Layout (Tally Classic) */
 .entries-grid-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
