@@ -136,7 +136,12 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); outlin
 
 @media (max-width: 768px) {
     .filter-container, .filter-inputs, .filter-actions { flex-direction: column; align-items: stretch;  }
-    .voucher-header { flex-direction: column; gap: 10px; }
+    .voucher-header { flex-direction: row; flex-wrap: nowrap; gap: 6px; }
+    .voucher-header .form-group { min-width: 0; flex: 1 1 0; }
+    .voucher-header .form-group:first-child { flex: 1.1 1 0; }
+    .voucher-header .form-group:nth-child(2) { flex: 1.2 1 0; }
+    .voucher-header .form-group:nth-child(3) { flex: .9 1 0; }
+    .voucher-header input, .voucher-header select { padding: 8px 5px; font-size: 11px; }
 	 /* Entry Row Grid changes to stacked layout with remove button handled neatly */
     .entry-row { display:grid;grid-template-columns: 1fr; gap: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 15px; margin-bottom: 15px; }
     .entry-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
@@ -172,9 +177,10 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); outlin
     }
     .tally-table tbody tr td:first-child { font-size: 10px; color: #777; }
     .tally-table tbody tr td:nth-child(2) { font-size: 16px; font-weight: 700; color: var(--primary); }
-    .tally-table tbody tr td:nth-child(3) { font-size: 12px; color: #64748b; }
-    .tally-table tbody tr td:nth-child(4) { padding-top: 8px; }
-    .tally-table tbody tr td:nth-child(5) {
+    .tally-table tbody tr td:nth-child(3) { font-size: 12px; color: #075985; }
+    .tally-table tbody tr td:nth-child(4) { font-size: 12px; color: #64748b; }
+    .tally-table tbody tr td:nth-child(5) { padding-top: 8px; }
+    .tally-table tbody tr td:nth-child(6) {
         background: #f8fafc;
         border-left: 3px solid #3498db;
         border-radius: 4px;
@@ -215,7 +221,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); outlin
     <!-- MAIN CONSOLIDATED INPUT FORM -->
     <div class="card" id="entryFormCard">
         <div class="flex-header">
-            <h3> New Multi-Linegxhdjdjdk bdjjd hdjdj Journal Voucher</h3>
+            
             <!-- सुधरा हुआ आधुनिक स्विच -->
             <div class="switch-container">
                 <span class="switch-label">  Natwa</span>
@@ -231,8 +237,18 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); outlin
             <!-- Voucher Settings -->
             <div class="voucher-header">
                 <div class="form-group">
-                    <label>Voucher Auto No</label>
+                    <label>Voucher No</label>
                     <input type="text" id="vouchNo" readonly class="bold-primary text-center">
+                </div>
+                <div class="form-group">
+                    <label>Voucher Type</label>
+                    <select id="voucherType" required>
+                        <option value="Cash Payment">Cash Payment</option>
+                        <option value="Cash Receipt">Cash Receipt</option>
+                        <option value="Bank Payment">Bank Payment</option>
+                        <option value="Bank Receipt">Bank Receipt</option>
+                        <option value="Journal Voucher" selected>Journal Voucher</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Date</label>
@@ -316,6 +332,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); outlin
                 <tr>
                     <th>Txn ID</th>
                     <th>Voucher No</th>
+                    <th>Voucher Type</th>
                     <th>Date</th>
                     <th>Accounts & Splits (Double Entry)</th>
                     <th>Narration</th>
@@ -342,6 +359,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); outlin
                 <tr>
                     <th>Txn ID</th>
                     <th>Voucher No</th>
+                    <th>Voucher Type</th>
                     <th>Date</th>
                     <th>Accounts & Splits (Double Entry)</th>
                     <th>Narration</th>
@@ -540,6 +558,7 @@ document.getElementById("txnForm").addEventListener("submit", async e => {
         const data = {
             txn_id: editingKey ? editingOldData.txn_id : generateTxnData().txnId,
             voucher_no: document.getElementById("vouchNo").value.trim(),
+            voucher_type: document.getElementById("voucherType").value,
             date: document.getElementById("vouchDate").value,
             entries: items,
             narration,
@@ -796,10 +815,12 @@ function getRowTemplates(data,rowId){
     const total=escapeHtml(data.total_amount||data.amount||'0.00');
     const txn=escapeHtml(data.txn_id||'');
     const voucher=escapeHtml(data.voucher_no||'');
+    const voucherType=escapeHtml(data.voucher_type||'Journal Voucher');
 
     return `
         <td><small><b>${txn}</b></small></td>
         <td><b>${voucher}</b></td>
+        <td><span class="badge" style="background:#e0f2fe;color:#075985">${voucherType}</span></td>
         <td>${escapeHtml(displayDate)}</td>
         <td>${entriesHtml}${docHtml}</td>
         <td><span style="white-space:pre-line">${safeNarration||'N/A'}</span></td>
@@ -823,6 +844,7 @@ function resetEntryForm(){
     addAccountRow("Dr"); addAccountRow("Cr");
     document.getElementById("narration").value="";
     document.getElementById("vouchDate").value=new Date().toISOString().split("T")[0];
+    document.getElementById("voucherType").value="Journal Voucher";
     document.getElementById("vouchNo").readOnly=true;
     document.getElementById("tableToggle").disabled=false;
     document.getElementById("editFiles").classList.remove("show");
@@ -852,6 +874,7 @@ window.openEditForm=function(rowId){
     document.getElementById("tableToggle").disabled=true;
     document.getElementById("vouchNo").value=data.voucher_no||"";
     document.getElementById("vouchNo").readOnly=false;
+    document.getElementById("voucherType").value=data.voucher_type||"Journal Voucher";
     document.getElementById("vouchDate").value=data.date||"";
     document.getElementById("narration").value=data.narration||"";
     document.getElementById("entriesContainer").innerHTML="";
@@ -919,7 +942,7 @@ window.triggerPrint = function(rowId) {
     printWindow.document.write(`
         <html><head><title>Print Voucher</title><style>body { font-family: sans-serif; padding: 30px; } .box { border: 2px solid #333; padding: 20px; border-radius: 8px; } table { width:100%; border-collapse:collapse; margin:15px 0; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }</style></head>
         <body><div class="box"><h2 style="text-align:center;">JOURNAL VOUCHER RECEIPT</h2>
-        <p><b>Txn ID:</b> ${data.txn_id} | <b>Voucher No:</b> ${data.voucher_no} | <b>Date:</b> ${data.date}</p><hr/>
+        <p><b>Txn ID:</b> ${data.txn_id} | <b>Voucher No:</b> ${data.voucher_no} | <b>Voucher Type:</b> ${data.voucher_type||'Journal Voucher'} | <b>Date:</b> ${data.date}</p><hr/>
         <table><thead><tr><th>Type</th><th>Account Ledger</th><th>Amount</th></tr></thead><tbody>
         ${data.entries.map(e => `<tr><td><b>${e.type}</b></td><td>${e.account}</td><td>${e.amount}</td></tr>`).join('')}
         </tbody></table>
